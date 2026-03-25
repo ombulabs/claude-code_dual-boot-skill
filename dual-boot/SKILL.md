@@ -1,7 +1,10 @@
 ---
 name: dual-boot
 description: Sets up and manages dual-boot Ruby and Rails environments using the next_rails gem. Helps configure Gemfile for running two versions of Rails, Ruby, or any core dependency simultaneously, set up CI for both versions, use NextRails.next? for version-dependent code, and clean up after the upgrade is complete. Based on FastRuby.io methodology and "The Complete Guide to Upgrade Rails" ebook.
+argument-hint: "[current-version] [target-version]"
 ---
+
+When invoked via `/dual-boot`, follow the setup workflow in `workflows/setup-workflow.md` to set up dual-boot for this project. If the user provides version arguments (e.g. `/dual-boot 7.0 7.1`), use them as the current and target versions. If no arguments are provided, detect the current version from the Gemfile and ask the user for the target version.
 
 # Dual-Boot Skill v1.0
 

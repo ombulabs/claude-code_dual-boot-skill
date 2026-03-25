@@ -1,17 +1,19 @@
-# Dual-Boot Skill
+# Claude Code Dual Boot Skill
 
-A Claude Code skill that helps you set up and manage dual-boot environments for Ruby and Rails applications using the [`next_rails`](https://github.com/fastruby/next_rails) gem.
+A Claude Code skill that helps you set up and manage dual-boot environments for Ruby
+and Rails applications using the [`next_rails`](https://github.com/fastruby/next_rails) gem.
 
 ## What Does This Skill Do?
 
 The Dual-Boot skill helps you:
 
-- **Set up dual-boot** with the `next_rails` gem so your app runs with two dependency sets simultaneously
+- **Set up dual-boot** with the `next_rails` gem so your app runs with two dependency sets depending on one environment variable (ie. BUNDLE_GEMFILE)
 - **Write version-dependent code** using `NextRails.next?` (the correct pattern — never `respond_to?`)
 - **Configure CI** to test against both dependency sets (GitHub Actions, CircleCI, Jenkins)
 - **Clean up** dual-boot code after the upgrade is complete
 
-While most commonly used for **Rails version upgrades**, dual-boot works equally well for upgrading **Ruby versions** or any **core dependency** in your Gemfile (e.g., `sidekiq`, `devise`, `pg`).
+While most commonly used for **Rails version upgrades**, dual-boot works equally well for
+upgrading **Ruby versions** or any **core dependency** in your Gemfile (e.g., `sidekiq`, `devise`, `pg`).
 
 ## Why Dual-Boot?
 
@@ -21,6 +23,7 @@ Dual-booting is a core part of the [FastRuby.io](https://fastruby.io) upgrade me
 - Run test suites against both versions
 - Deploy backwards-compatible changes to production before the version bump
 - Catch compatibility issues early in CI
+- Allows you to gradually deploy versions of key dependencies (e.g. 10% of the traffic will now use the target version of Rails)
 
 ## How to Use This Skill
 
@@ -47,7 +50,7 @@ In Claude Code, navigate to your Rails application directory and use natural lan
 "Clean up dual-boot code after upgrade"
 ```
 
-## Key Principle: Use `NextRails.next?`, Not `respond_to?`
+## Key Principle: Use `NextRails.next?` (not `respond_to?`!)
 
 When writing code that must work with two versions, always use `NextRails.next?`:
 
@@ -60,7 +63,7 @@ else
 end
 ```
 
-Never use `respond_to?` for version branching — it's hard to understand, hard to maintain, and obscures intent.
+Never use `respond_to?` for version branching. It's hard to understand, hard to maintain, and obscures intent.
 
 ## Related Skills
 
@@ -77,13 +80,14 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## Sponsors
 
-### [OmbuLabs.ai](https://ombulabs.ai) | Custom AI Solutions
+### OmbuLabs.ai | Custom AI Solutions
 
-We build custom AI solutions that integrate with your existing workflows. From Claude Code skills to full AI agent systems.
+[OmbuLabs.ai is Philadelphia's AI Software Boutique](https://ombulabs.ai). We build custom AI solutions that integrate with your existing workflows. From Claude Code skills to full AI agent systems.
 
 ### [FastRuby.io](https://fastruby.io) | Ruby Maintenance, Done Right
 
-The Rails upgrade experts. We've been upgrading Rails applications professionally since 2017, helping companies stay current and secure.
+The Rails upgrade experts. We've been upgrading Rails applications professionally since 2017, helping companies
+stay current and secure.
 
 ---
 
