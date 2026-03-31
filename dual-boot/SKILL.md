@@ -102,6 +102,7 @@ Claude should activate this skill when user says:
 See `workflows/setup-workflow.md` for the complete step-by-step process.
 
 **Summary:**
+0. Verify deprecation warnings are not silenced (see `reference/deprecation-tracking.md`)
 1. Check if dual-boot is already set up (look for `Gemfile.next`)
 2. Add `next_rails` gem to Gemfile
 3. Run `bundle install`
@@ -146,6 +147,7 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 - `SKILL.md` - This file (entry point)
 
 ### Reference Materials
+- `reference/deprecation-tracking.md` - Detecting silenced deprecations and configuring tracking (Rails 3.0+)
 - `reference/code-patterns.md` - `NextRails.next?` usage examples in application code
 - `reference/ci-configuration.md` - CI setup for dual-boot (GitHub Actions, CircleCI, Jenkins)
 - `reference/gemfile-examples.md` - Gemfile configuration patterns for dual-boot
@@ -161,11 +163,12 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 
 ## Key Principles
 
-1. **Never run `next_rails --init` if `Gemfile.next` exists** — it will duplicate the `next?` method
-2. **Always use `NextRails.next?` for version-dependent code** — never `respond_to?`
-3. **Test both versions** — run `bundle exec rspec` and `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec`
-4. **Clean up after upgrade** — search for and remove all `NextRails.next?` branches
-5. **Add `next_rails` to all environments** — not just development
+1. **Ensure deprecation warnings are visible** — silenced deprecations mean you can't track upgrade progress
+2. **Never run `next_rails --init` if `Gemfile.next` exists** — it will duplicate the `next?` method
+3. **Always use `NextRails.next?` for version-dependent code** — never `respond_to?`
+4. **Test both versions** — run `bundle exec rspec` and `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec`
+5. **Clean up after upgrade** — search for and remove all `NextRails.next?` branches
+6. **Add `next_rails` to all environments** — not just development
 
 ---
 

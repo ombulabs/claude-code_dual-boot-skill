@@ -7,6 +7,26 @@
 
 ---
 
+## Step 0: Verify Deprecation Warnings Are Not Silenced
+
+Before setting up dual-boot, ensure deprecation warnings are visible. Silenced deprecations mean you can't track upgrade progress.
+
+**Check for silenced deprecations:**
+
+```bash
+grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" config/
+```
+
+**If deprecations are silenced:**
+1. Change `:silence` to `:stderr` or `:log` (or `:raise` if you want strict mode)
+2. Remove `ActiveSupport::Deprecation.silenced = true` if found
+3. Remove `config.active_support.report_deprecations = false` if found (Rails 7.0+)
+4. Run the test suite to see current deprecation warnings
+
+See `reference/deprecation-tracking.md` for detailed configuration guidance, including a gradual approach using custom deprecation behaviors for apps with many existing warnings.
+
+---
+
 ## Step 1: Check if Dual-Boot is Already Set Up
 
 ```bash
