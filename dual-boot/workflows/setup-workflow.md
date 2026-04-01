@@ -170,7 +170,38 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 
 ---
 
-## Step 7: Commit Dual-Boot Setup
+## Step 7: Set Up Deprecation Tracking with DeprecationTracker
+
+The `next_rails` gem includes `DeprecationTracker`, which captures all deprecation warnings during test runs and saves them to a JSON file. Set it up now so you have a complete deprecation inventory from the start.
+
+### Configure RSpec
+
+Add the following to `spec/spec_helper.rb` (or `spec/rails_helper.rb`):
+
+```ruby
+RSpec.configure do |config|
+  DeprecationTracker.track_rspec(
+    config,
+    shitlist_path: "spec/support/deprecation_warning.shitlist.json",
+    mode: ENV.fetch("DEPRECATION_TRACKER", "save"),
+    transform_message: -> (message) { message.gsub("#{Rails.root}/", "") }
+  )
+end
+```
+
+### Generate the Initial Deprecation Inventory
+
+```bash
+DEPRECATION_TRACKER=save bundle exec rspec
+```
+
+This creates `spec/support/deprecation_warning.shitlist.json` — a JSON file listing every unique deprecation warning found during the run. Review it to understand the scope of deprecations you need to address.
+
+See `reference/deprecation-tracking.md` for the full workflow (updating the shitlist, preventing regressions, CI with parallel execution, and alternative approaches).
+
+---
+
+## Step 8: Commit Dual-Boot Setup
 
 ```bash
 git add Gemfile Gemfile.next Gemfile.next.lock
