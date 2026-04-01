@@ -42,40 +42,126 @@ ActiveSupport::Deprecation.silence { ... }
 
 ### Detection Commands
 
+Search from the project root to catch configuration in any directory structure (standard Rails, Packwerk packs, engines, etc.):
+
 ```bash
 # Find all deprecation configuration
-grep -rn "active_support.deprecation" config/
-grep -rn "report_deprecations" config/
-grep -rn "Deprecation.silenced" app/ lib/ config/
-grep -rn "Deprecation.silence" app/ lib/ config/
+grep -rn "active_support.deprecation" .
+grep -rn "report_deprecations" .
+grep -rn "Deprecation.silenced" .
+grep -rn "Deprecation.silence" .
 ```
 
 If any of these are silencing deprecations, fix them before proceeding with the upgrade.
 
 ---
 
-## Step 2: Configure Deprecation Behavior
+## Step 2: Save Deprecation Inventory with DeprecationTracker
 
-### Recommended Settings
+The `next_rails` gem includes `DeprecationTracker` which captures all deprecation warnings during test runs and saves them to a file. This gives you a complete inventory without stopping on the first failure (unlike `:raise`).
+
+### Setup
+
+Ensure `next_rails` is in your Gemfile at the **root level** (not inside a `group` block):
 
 ```ruby
-# config/environments/development.rb
-config.active_support.deprecation = :raise
-
-# config/environments/test.rb
-config.active_support.deprecation = :raise
-
-# config/environments/production.rb
-config.active_support.deprecation = :notify
+# Gemfile
+# MUST be at root level — not in :development or :test group
+gem 'next_rails'
 ```
 
-Setting `:raise` in test/development means you'll see deprecations immediately as failures. This is the ideal end state, but if your app has many existing deprecations, you may need a gradual approach — see "Custom Deprecation Behavior" below.
+Then configure RSpec:
+
+```ruby
+# spec/spec_helper.rb (or spec/rails_helper.rb)
+RSpec.configure do |config|
+  DeprecationTracker.track_rspec(
+    config,
+    shitlist_path: "spec/support/deprecation_warning.shitlist.json",
+    mode: ENV.fetch("DEPRECATION_TRACKER", "save"),
+    transform_message: -> (message) { message.gsub("#{Rails.root}/", "") }
+  )
+end
+```
+
+- **`shitlist_path`** — where to save/read the deprecation inventory (required, no default)
+- **`mode`** — defaults to `save` so it always tracks
+- **`transform_message`** — strips the Rails root path from messages so the shitlist is portable across environments
+
+### Save the Deprecation Shitlist
+
+Run the test suite with `DEPRECATION_TRACKER=save` to collect all deprecation warnings:
+
+```bash
+DEPRECATION_TRACKER=save bundle exec rspec
+```
+
+This generates `spec/support/deprecation_warning.shitlist.json` — a JSON file listing every unique deprecation warning found during the run.
+
+> **Note:** The shitlist path is hardcoded to `spec/support/deprecation_warning.shitlist.json`. Make sure this directory exists.
+
+### Prevent Regressions
+
+Once you have a shitlist, run with `DEPRECATION_TRACKER=save` after fixing deprecations to update the file. As you fix deprecations, the shitlist shrinks. Any new deprecation not in the shitlist will cause a failure, preventing regressions.
+
+### Workflow
+
+1. `DEPRECATION_TRACKER=save bundle exec rspec` — generates initial shitlist
+2. Review the shitlist to understand the scope of deprecations
+3. Fix one category of deprecation (e.g., `update_attributes`)
+4. `DEPRECATION_TRACKER=save bundle exec rspec` — updates the shitlist (it should shrink)
+5. Repeat until the shitlist is empty
+6. Commit the shitlist file so the team tracks progress together
+
+### CI with Parallel Test Execution
+
+`DeprecationTracker` does not natively support parallel execution. When CI splits tests across multiple nodes/containers (e.g., CircleCI parallelism, parallel_tests gem), each node only sees its subset of deprecations. You need to collect and merge the results.
+
+**Strategy: Save per-node, merge after**
+
+1. On each CI node, run with `DEPRECATION_TRACKER=save` as normal
+2. Each node produces its own `spec/support/deprecation_warning.shitlist.json`
+3. After all nodes finish, collect and merge the shitlist files:
+
+```bash
+# Example merge script (run after all parallel nodes complete)
+# Collects shitlist JSON files from each node and merges them
+
+require 'json'
+
+shitlists = Dir.glob("node-*/spec/support/deprecation_warning.shitlist.json")
+merged = {}
+
+shitlists.each do |file|
+  data = JSON.parse(File.read(file))
+  data.each do |key, values|
+    merged[key] ||= []
+    merged[key] = (merged[key] + values).uniq
+  end
+end
+
+File.write("spec/support/deprecation_warning.shitlist.json", JSON.pretty_generate(merged))
+```
+
+The exact collection mechanism depends on your CI setup:
+- **CircleCI**: Use `persist_to_workspace` / `attach_workspace` to gather shitlists from parallel containers
+- **GitHub Actions**: Use `upload-artifact` / `download-artifact` across matrix jobs
+- **parallel_tests gem**: Each process writes to the same filesystem, so you can glob the results directly
+
+> **Tip:** Run the initial `DEPRECATION_TRACKER=save` locally (non-parallel) to generate the first complete shitlist. Use the parallel merge strategy in CI for ongoing regression checks.
+
+### Limitations
+
+- **Not compatible with `minitest/parallel_fork`** — use standard minitest or RSpec
+- **Shitlist path is hardcoded** — must be `spec/support/deprecation_warning.shitlist.json`
+- **No native parallel support** — requires manual merge when using CI parallelism (see above)
+- **RSpec only** for the `track_rspec` helper — Minitest requires manual integration
 
 ---
 
-## Step 3: Custom Deprecation Behavior (Gradual Approach)
+## Step 3: Custom Deprecation Behavior (Alternative Approach)
 
-If setting `:raise` produces too many failures at once, use a custom behavior to selectively raise on deprecations you've already fixed, while logging the rest. This prevents regressions on fixed deprecations while giving you time to address the remaining ones.
+If `DeprecationTracker` doesn't fit your setup (e.g., Minitest with parallel_fork, or you want more control), you can use custom deprecation behaviors to selectively raise on fixed deprecations while logging the rest.
 
 Based on [FastRuby.io's custom deprecation behavior approach](https://www.fastruby.io/blog/custom-deprecation-behavior.html):
 
@@ -99,9 +185,6 @@ config.active_support.deprecation = :log
 ### Rails 5.2+ (Backported via Custom Lambda)
 
 ```ruby
-# config/environments/test.rb
-config.active_support.deprecation = :stderr
-
 # config/initializers/custom_deprecation_behavior.rb
 ActiveSupport::Deprecation.behavior = ->(message, callstack, deprecation_horizon, gem_name) {
   # Deprecations you've already fixed — raise if they reappear
@@ -164,24 +247,15 @@ ActiveSupport::Deprecation.behavior = ->(message, callstack) {
 }
 ```
 
-### Workflow for Custom Behavior
-
-1. Start with an empty `disallowed` list and `:stderr` or `:log` as the default
-2. Run tests — collect all deprecation warnings
-3. Fix one category of deprecation (e.g., `update_attributes`)
-4. Add it to the `disallowed` list
-5. Repeat until all deprecations are fixed
-6. Switch to `config.active_support.deprecation = :raise` when the list covers everything
-
 ---
 
 ## Step 4: Maintenance
 
 After completing the upgrade:
 
-- Review the disallowed list and remove entries for deprecations that no longer exist in the new Rails version
-- This avoids unnecessary string comparisons on every deprecation check
-- If you've fixed all deprecations, switch to `:raise` and remove the custom behavior entirely
+- If using DeprecationTracker: delete the shitlist file once it's empty
+- If using custom behaviors: remove entries for deprecations that no longer exist in the new Rails version
+- If you've fixed all deprecations, you can switch to `config.active_support.deprecation = :raise` for strict mode going forward
 
 ---
 
@@ -189,7 +263,8 @@ After completing the upgrade:
 
 | What to check | Command |
 |---|---|
-| Silenced deprecations | `grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" config/` |
-| Current behavior | `grep -rn "active_support.deprecation" config/environments/` |
-| Custom behaviors | `grep -rn "Deprecation.behavior" config/ app/ lib/` |
+| Silenced deprecations | `grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" .` |
+| Current behavior | `grep -rn "active_support.deprecation" .` |
+| Custom behaviors | `grep -rn "Deprecation.behavior" .` |
+| Save deprecation inventory | `DEPRECATION_TRACKER=save bundle exec rspec` |
 | Existing warnings | `bundle exec rspec 2>&1 \| grep "DEPRECATION WARNING"` |

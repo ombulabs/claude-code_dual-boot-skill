@@ -168,7 +168,7 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 3. **Always use `NextRails.next?` for version-dependent code** — never `respond_to?`
 4. **Test both versions** — run `bundle exec rspec` and `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec`
 5. **Clean up after upgrade** — search for and remove all `NextRails.next?` branches
-6. **Add `next_rails` to all environments** — not just development
+6. **Add `next_rails` at the Gemfile root level** — not inside a `:development` or `:test` group
 
 ---
 
