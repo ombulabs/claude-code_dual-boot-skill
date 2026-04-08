@@ -134,9 +134,9 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 2. Keep only the `NextRails.next?` (true) branch code
 3. Remove all `else` branches
 4. Remove `next?` method from Gemfile
-5. Remove `Gemfile.next` and `Gemfile.next.lock`
-6. Remove the `next_rails` gem if no longer needed
-7. Run `bundle install` and full test suite
+5. Remove `next_rails` gem if no longer needed
+6. Remove `Gemfile.next` and replace `Gemfile.lock` with `Gemfile.next.lock`
+7. Run full test suite
 
 ---
 
