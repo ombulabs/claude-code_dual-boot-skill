@@ -89,7 +89,7 @@ gem 'next_rails'
 Replace `Gemfile.lock` with `Gemfile.next.lock` to keep the exact gem versions that were tested during the upgrade — running `bundle install` from scratch could resolve to different versions.
 
 ```bash
-rm Gemfile.next
+rm Gemfile.next Gemfile.lock
 mv Gemfile.next.lock Gemfile.lock
 ```
 
