@@ -126,13 +126,11 @@ See `reference/gemfile-examples.md` for more patterns.
 # Install current version dependencies
 bundle install
 
+# Copy the current lock file so the next bundle starts from the same resolved versions
+# This avoids unwanted dependency upgrades
+cp Gemfile.lock Gemfile.next.lock
+
 # Install next version dependencies
-next bundle install
-```
-
-If `next bundle install` does not work (e.g., the `next` command is not found in PATH), use:
-
-```bash
 BUNDLE_GEMFILE=Gemfile.next bundle install
 ```
 
