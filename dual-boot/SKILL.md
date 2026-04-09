@@ -9,9 +9,9 @@ When invoked via `/dual-boot`, follow the setup workflow in `workflows/setup-wor
 # Dual-Boot Skill
 
 - **Purpose:** Set up and manage dual-boot environments for Rails, Ruby, or core Gemfile dependencies using the `next_rails` gem
-- **Based on:** FastRuby.io methodology and "The Complete Guide to Upgrade Rails" ebook
 - **Key Gem:** [next_rails](https://github.com/fastruby/next_rails)
-- **Changelog:** See `CHANGELOG.md` for version history
+- **Methodology:** Based on FastRuby.io upgrade best practices and "The Complete Guide to Upgrade Rails" ebook
+- **Attribution:** Content based on "The Complete Guide to Upgrade Rails" by FastRuby.io (OmbuLabs)
 
 ---
 
@@ -176,4 +176,8 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 | `next bundle exec rspec` | Run tests with the next dependency set |
 | `BUNDLE_GEMFILE=Gemfile.next bundle exec rails server` | Start server with next version |
 | `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec` | Alternative to `next` command |
+
+---
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and current version.
 
