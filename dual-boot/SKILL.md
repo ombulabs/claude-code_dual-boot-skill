@@ -6,14 +6,12 @@ argument-hint: "[current-version] [target-version]"
 
 When invoked via `/dual-boot`, follow the setup workflow in `workflows/setup-workflow.md` to set up dual-boot for this project. If the user provides version arguments (e.g. `/dual-boot 7.0 7.1`), use them as the current and target versions. If no arguments are provided, detect the current version from the Gemfile and ask the user for the target version.
 
-# Dual-Boot Skill v1.0
+# Dual-Boot Skill
 
-## Skill Identity
-- **Name:** Dual-Boot
-- **Version:** 1.0
 - **Purpose:** Set up and manage dual-boot environments for Rails, Ruby, or core Gemfile dependencies using the `next_rails` gem
 - **Based on:** FastRuby.io methodology and "The Complete Guide to Upgrade Rails" ebook
 - **Key Gem:** [next_rails](https://github.com/fastruby/next_rails)
+- **Changelog:** See `CHANGELOG.md` for version history
 
 ---
 
@@ -179,9 +177,3 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 | `BUNDLE_GEMFILE=Gemfile.next bundle exec rails server` | Start server with next version |
 | `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec` | Alternative to `next` command |
 
----
-
-**Version:** 1.0
-**Last Updated:** March 2025
-**Methodology:** Based on FastRuby.io upgrade best practices and "The Complete Guide to Upgrade Rails" ebook
-**Attribution:** Content based on "The Complete Guide to Upgrade Rails" by FastRuby.io (OmbuLabs)
