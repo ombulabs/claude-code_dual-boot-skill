@@ -1,0 +1,13 @@
+{
+  "name": "dual-boot",
+  "version": "1.0.0",
+  "description": "Sets up and manages dual-boot Ruby and Rails environments using the next_rails gem, based on FastRuby.io methodology",
+  "skills": "./dual-boot/",
+  "author": {
+    "name": "OmbuLabs",
+    "url": "https://github.com/ombulabs"
+  },
+  "repository": "https://github.com/ombulabs/claude-code_dual-boot-skill",
+  "license": "MIT",
+  "keywords": ["rails", "ruby", "dual-boot", "upgrade", "next_rails"]
+}
