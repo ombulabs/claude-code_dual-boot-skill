@@ -43,6 +43,9 @@ git clone https://github.com/ombulabs/claude-code_dual-boot-skill.git
 cp -r claude-code_dual-boot-skill/dual-boot ~/.claude/skills/
 ```
 
+> [!NOTE]
+> This skill works standalone, but it is part of the full Rails upgrade toolkit. You may also want to install [rails-load-defaults](https://github.com/ombulabs/claude-code_rails-load-defaults-skill) and [rails-upgrade](https://github.com/ombulabs/claude-code_rails-upgrade-skill).
+
 ### Basic Usage
 
 In Claude Code, navigate to your Rails application directory and use natural language:
