@@ -9,5 +9,5 @@
   },
   "repository": "https://github.com/ombulabs/claude-code_dual-boot-skill",
   "license": "MIT",
-  "keywords": ["rails", "ruby", "dual-boot", "upgrade", "next_rails"]
+  "keywords": ["ruby", "rails", "upgrade", "migration", "fastruby", "breaking-changes", "tech-debt", "deprecations", "legacy-code", "ruby-on-rails", "dual-boot", "next_rails"]
 }
