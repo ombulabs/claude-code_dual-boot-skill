@@ -33,7 +33,7 @@ Dual-booting is a core part of the [FastRuby.io](https://fastruby.io) upgrade me
 
 ```bash
 claude plugin marketplace add https://github.com/ombulabs/claude-skills.git
-claude plugin install dual-boot@ombulabs-skills
+claude plugin install dual-boot@ombulabs-ai
 ```
 
 **Manual install:**
