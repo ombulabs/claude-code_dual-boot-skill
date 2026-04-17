@@ -29,13 +29,22 @@ Dual-booting is a core part of the [FastRuby.io](https://fastruby.io) upgrade me
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/ombulabs/claude-code_dual-boot-skill.git
+**Via the OmbuLabs marketplace (recommended):**
 
-# Add to your Claude Code skills directory
+```bash
+claude plugin marketplace add https://github.com/ombulabs/claude-skills.git
+claude plugin install dual-boot@ombulabs-ai
+```
+
+**Manual install:**
+
+```bash
+git clone https://github.com/ombulabs/claude-code_dual-boot-skill.git
 cp -r claude-code_dual-boot-skill/dual-boot ~/.claude/skills/
 ```
+
+> [!NOTE]
+> This skill works standalone, but it is part of the full Rails upgrade toolkit. You may also want to install [rails-load-defaults](https://github.com/ombulabs/claude-code_rails-load-defaults-skill) and [rails-upgrade](https://github.com/ombulabs/claude-code_rails-upgrade-skill).
 
 ### Basic Usage
 
