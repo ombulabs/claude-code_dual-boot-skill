@@ -146,13 +146,12 @@ See `references/gemfile-examples.md` for more patterns.
 # Install current version dependencies
 bundle install
 
+# IMPORTANT: Copy Gemfile.lock BEFORE running the next bundle install.
+# Without this, bundler would resolve all dependencies from scratch and may
+# upgrade unrelated gems. By copying first, only gems in `if next?` blocks will change.
+cp Gemfile.lock Gemfile.next.lock
+
 # Install next version dependencies
-next bundle install
-```
-
-If `next bundle install` does not work (e.g., the `next` command is not found in PATH), use:
-
-```bash
 BUNDLE_GEMFILE=Gemfile.next bundle install
 ```
 
