@@ -107,7 +107,10 @@ See `workflows/setup-workflow.md` for the complete step-by-step process.
 3. Run `bundle install`
 4. Run `next_rails --init` (only if `Gemfile.next` does NOT exist)
 5. Configure Gemfile with `next?` conditionals for the dependency being upgraded
-6. Run `bundle install`, copy `Gemfile.lock` as `Gemfile.next.lock`, then run `BUNDLE_GEMFILE=Gemfile.next bundle install`
+  6. Install dependencies for both versions:
+     - Current: `bundle install`
+     - Next: `cp Gemfile.lock Gemfile.next.lock && BUNDLE_GEMFILE=Gemfile.next bundle install`
+
 7. Verify both versions work
 
 ### Workflow 2: Add Version-Dependent Code

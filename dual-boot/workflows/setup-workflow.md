@@ -126,8 +126,9 @@ See `reference/gemfile-examples.md` for more patterns.
 # Install current version dependencies
 bundle install
 
-# Copy the current lock file so the next bundle starts from the same resolved versions
-# This avoids unwanted dependency upgrades
+# IMPORTANT: Copy Gemfile.lock BEFORE running the next bundle install.
+# Without this, bundler would resolve all dependencies from scratch and may
+# upgrade unrelated gems. By copying first, only gems in `if next?` blocks will change.
 cp Gemfile.lock Gemfile.next.lock
 
 # Install next version dependencies
