@@ -100,7 +100,7 @@ Claude should activate this skill when user says:
 See `workflows/setup-workflow.md` for the complete step-by-step process.
 
 **Summary:**
-0. Verify deprecation warnings are not silenced (see `reference/deprecation-tracking.md`)
+0. Verify deprecation warnings are not silenced (see `references/deprecation-tracking.md`)
 1. Check if dual-boot is already set up (look for `Gemfile.next`)
 2. Add `next_rails` gem to Gemfile
 3. Run `bundle install`
@@ -118,11 +118,11 @@ When proposing code changes that need to work with both dependency sets:
 3. Keep the `next?` branch (new version code) on top
 4. Keep the `else` branch (old version code) below
 
-See `reference/code-patterns.md` for examples.
+See `references/code-patterns.md` for examples.
 
 ### Workflow 3: Configure CI
 
-See `reference/ci-configuration.md` for CI setup with GitHub Actions, CircleCI, and Jenkins.
+See `references/ci-configuration.md` for CI setup with GitHub Actions, CircleCI, and Jenkins.
 
 ### Workflow 4: Clean Up After Upgrade
 
@@ -145,10 +145,10 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 - `SKILL.md` - This file (entry point)
 
 ### Reference Materials
-- `reference/deprecation-tracking.md` - Detecting silenced deprecations and configuring tracking (Rails 3.0+)
-- `reference/code-patterns.md` - `NextRails.next?` usage examples in application code
-- `reference/ci-configuration.md` - CI setup for dual-boot (GitHub Actions, CircleCI, Jenkins)
-- `reference/gemfile-examples.md` - Gemfile configuration patterns for dual-boot
+- `references/deprecation-tracking.md` - Detecting silenced deprecations and configuring tracking (Rails 3.0+)
+- `references/code-patterns.md` - `NextRails.next?` usage examples in application code
+- `references/ci-configuration.md` - CI setup for dual-boot (GitHub Actions, CircleCI, Jenkins)
+- `references/gemfile-examples.md` - Gemfile configuration patterns for dual-boot
 
 ### Workflows
 - `workflows/setup-workflow.md` - Step-by-step dual-boot setup

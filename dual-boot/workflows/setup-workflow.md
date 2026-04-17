@@ -23,7 +23,7 @@ grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" conf
 3. Remove `config.active_support.report_deprecations = false` if found (Rails 7.0+)
 4. Run the test suite to see current deprecation warnings
 
-See `reference/deprecation-tracking.md` for detailed configuration guidance, including a gradual approach using custom deprecation behaviors for apps with many existing warnings.
+See `references/deprecation-tracking.md` for detailed configuration guidance, including a gradual approach using custom deprecation behaviors for apps with many existing warnings.
 
 ---
 
@@ -136,7 +136,7 @@ else
 end
 ```
 
-See `reference/gemfile-examples.md` for more patterns.
+See `references/gemfile-examples.md` for more patterns.
 
 ---
 
@@ -197,7 +197,7 @@ DEPRECATION_TRACKER=save bundle exec rspec
 
 This creates `spec/support/deprecation_warning.shitlist.json` — a JSON file listing every unique deprecation warning found during the run. Review it to understand the scope of deprecations you need to address.
 
-See `reference/deprecation-tracking.md` for the full workflow (updating the shitlist, preventing regressions, CI with parallel execution, and alternative approaches).
+See `references/deprecation-tracking.md` for the full workflow (updating the shitlist, preventing regressions, CI with parallel execution, and alternative approaches).
 
 ---
 
@@ -212,6 +212,6 @@ git commit -m "Add dual-boot setup for upgrade"
 
 ## Next Steps
 
-- Configure CI to test both versions (see `reference/ci-configuration.md`)
+- Configure CI to test both versions (see `references/ci-configuration.md`)
 - Start fixing breaking changes using `NextRails.next?` branching
-- See `reference/code-patterns.md` for code examples
+- See `references/code-patterns.md` for code examples
