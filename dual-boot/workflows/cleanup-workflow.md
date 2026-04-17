@@ -84,23 +84,18 @@ gem 'next_rails'
 
 ---
 
-## Step 5: Remove Dual-Boot Files
+## Step 5: Remove Dual-Boot Files and Preserve Lock Versions
+
+Replace `Gemfile.lock` with `Gemfile.next.lock` to keep the exact gem versions that were tested during the upgrade, and remove `Gemfile.next` which is no longer needed — running `bundle install` from scratch could resolve to different versions.
 
 ```bash
-rm Gemfile.next Gemfile.next.lock
+rm Gemfile.next Gemfile.lock
+mv Gemfile.next.lock Gemfile.lock
 ```
 
 ---
 
-## Step 6: Reinstall Dependencies
-
-```bash
-bundle install
-```
-
----
-
-## Step 7: Run Full Test Suite
+## Step 6: Run Full Test Suite
 
 ```bash
 bundle exec rspec
@@ -110,13 +105,13 @@ Ensure all tests pass without dual-boot.
 
 ---
 
-## Step 8: Update CI Configuration
+## Step 7: Update CI Configuration
 
 Remove the dual-boot CI job/matrix entry that ran tests with `BUNDLE_GEMFILE=Gemfile.next`.
 
 ---
 
-## Step 9: Commit Cleanup
+## Step 8: Commit Cleanup
 
 ```bash
 git add -A
