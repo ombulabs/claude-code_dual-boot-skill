@@ -6,14 +6,12 @@ argument-hint: "[current-version] [target-version]"
 
 When invoked via `/dual-boot`, follow the setup workflow in `workflows/setup-workflow.md` to set up dual-boot for this project. If the user provides version arguments (e.g. `/dual-boot 7.0 7.1`), use them as the current and target versions. If no arguments are provided, detect the current version from the Gemfile and ask the user for the target version.
 
-# Dual-Boot Skill v1.0
+# Dual-Boot Skill
 
-## Skill Identity
-- **Name:** Dual-Boot
-- **Version:** 1.0
 - **Purpose:** Set up and manage dual-boot environments for Rails, Ruby, or core Gemfile dependencies using the `next_rails` gem
-- **Based on:** FastRuby.io methodology and "The Complete Guide to Upgrade Rails" ebook
 - **Key Gem:** [next_rails](https://github.com/fastruby/next_rails)
+- **Methodology:** Based on FastRuby.io upgrade best practices and "The Complete Guide to Upgrade Rails" ebook
+- **Attribution:** Content based on "The Complete Guide to Upgrade Rails" by FastRuby.io (OmbuLabs)
 
 ---
 
@@ -102,6 +100,7 @@ Claude should activate this skill when user says:
 See `workflows/setup-workflow.md` for the complete step-by-step process.
 
 **Summary:**
+0. Verify deprecation warnings are not silenced (see `references/deprecation-tracking.md`)
 1. Check if dual-boot is already set up (look for `Gemfile.next`)
 2. Add `next_rails` gem to Gemfile
 3. Run `bundle install`
@@ -119,11 +118,11 @@ When proposing code changes that need to work with both dependency sets:
 3. Keep the `next?` branch (new version code) on top
 4. Keep the `else` branch (old version code) below
 
-See `reference/code-patterns.md` for examples.
+See `references/code-patterns.md` for examples.
 
 ### Workflow 3: Configure CI
 
-See `reference/ci-configuration.md` for CI setup with GitHub Actions, CircleCI, and Jenkins.
+See `references/ci-configuration.md` for CI setup with GitHub Actions, CircleCI, and Jenkins.
 
 ### Workflow 4: Clean Up After Upgrade
 
@@ -146,9 +145,10 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 - `SKILL.md` - This file (entry point)
 
 ### Reference Materials
-- `reference/code-patterns.md` - `NextRails.next?` usage examples in application code
-- `reference/ci-configuration.md` - CI setup for dual-boot (GitHub Actions, CircleCI, Jenkins)
-- `reference/gemfile-examples.md` - Gemfile configuration patterns for dual-boot
+- `references/deprecation-tracking.md` - Detecting silenced deprecations and configuring tracking (Rails 3.0+)
+- `references/code-patterns.md` - `NextRails.next?` usage examples in application code
+- `references/ci-configuration.md` - CI setup for dual-boot (GitHub Actions, CircleCI, Jenkins)
+- `references/gemfile-examples.md` - Gemfile configuration patterns for dual-boot
 
 ### Workflows
 - `workflows/setup-workflow.md` - Step-by-step dual-boot setup
@@ -161,11 +161,12 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 
 ## Key Principles
 
-1. **Never run `next_rails --init` if `Gemfile.next` exists** — it will duplicate the `next?` method
-2. **Always use `NextRails.next?` for version-dependent code** — never `respond_to?`
-3. **Test both versions** — run `bundle exec rspec` and `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec`
-4. **Clean up after upgrade** — search for and remove all `NextRails.next?` branches
-5. **Add `next_rails` to all environments** — not just development
+1. **Ensure deprecation warnings are visible** — silenced deprecations mean you can't track upgrade progress
+2. **Never run `next_rails --init` if `Gemfile.next` exists** — it will duplicate the `next?` method
+3. **Always use `NextRails.next?` for version-dependent code** — never `respond_to?`
+4. **Test both versions** — run `bundle exec rspec` and `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec`
+5. **Clean up after upgrade** — search for and remove all `NextRails.next?` branches
+6. **Add `next_rails` at the Gemfile root level** — not inside a `:development` or `:test` group
 
 ---
 
@@ -181,7 +182,5 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 
 ---
 
-**Version:** 1.0
-**Last Updated:** March 2025
-**Methodology:** Based on FastRuby.io upgrade best practices and "The Complete Guide to Upgrade Rails" ebook
-**Attribution:** Content based on "The Complete Guide to Upgrade Rails" by FastRuby.io (OmbuLabs)
+See [CHANGELOG.md](CHANGELOG.md) for version history and current version.
+

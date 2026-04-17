@@ -7,6 +7,26 @@
 
 ---
 
+## Step 0: Verify Deprecation Warnings Are Not Silenced
+
+Before setting up dual-boot, ensure deprecation warnings are visible. Silenced deprecations mean you can't track upgrade progress.
+
+**Check for silenced deprecations:**
+
+```bash
+grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" config/
+```
+
+**If deprecations are silenced:**
+1. Change `:silence` to `:stderr` or `:log` (or `:raise` if you want strict mode)
+2. Remove `ActiveSupport::Deprecation.silenced = true` if found
+3. Remove `config.active_support.report_deprecations = false` if found (Rails 7.0+)
+4. Run the test suite to see current deprecation warnings
+
+See `references/deprecation-tracking.md` for detailed configuration guidance, including a gradual approach using custom deprecation behaviors for apps with many existing warnings.
+
+---
+
 ## Step 1: Check if Dual-Boot is Already Set Up
 
 ```bash
@@ -116,7 +136,7 @@ else
 end
 ```
 
-See `reference/gemfile-examples.md` for more patterns.
+See `references/gemfile-examples.md` for more patterns.
 
 ---
 
@@ -150,7 +170,38 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 
 ---
 
-## Step 7: Commit Dual-Boot Setup
+## Step 7: Set Up Deprecation Tracking with DeprecationTracker
+
+The `next_rails` gem includes `DeprecationTracker`, which captures all deprecation warnings during test runs and saves them to a JSON file. Set it up now so you have a complete deprecation inventory from the start.
+
+### Configure RSpec
+
+Add the following to `spec/spec_helper.rb` (or `spec/rails_helper.rb`):
+
+```ruby
+RSpec.configure do |config|
+  DeprecationTracker.track_rspec(
+    config,
+    shitlist_path: "spec/support/deprecation_warning.shitlist.json",
+    mode: ENV.fetch("DEPRECATION_TRACKER", "save"),
+    transform_message: -> (message) { message.gsub("#{Rails.root}/", "") }
+  )
+end
+```
+
+### Generate the Initial Deprecation Inventory
+
+```bash
+DEPRECATION_TRACKER=save bundle exec rspec
+```
+
+This creates `spec/support/deprecation_warning.shitlist.json` — a JSON file listing every unique deprecation warning found during the run. Review it to understand the scope of deprecations you need to address.
+
+See `references/deprecation-tracking.md` for the full workflow (updating the shitlist, preventing regressions, CI with parallel execution, and alternative approaches).
+
+---
+
+## Step 8: Commit Dual-Boot Setup
 
 ```bash
 git add Gemfile Gemfile.next Gemfile.next.lock
@@ -161,6 +212,6 @@ git commit -m "Add dual-boot setup for upgrade"
 
 ## Next Steps
 
-- Configure CI to test both versions (see `reference/ci-configuration.md`)
+- Configure CI to test both versions (see `references/ci-configuration.md`)
 - Start fixing breaking changes using `NextRails.next?` branching
-- See `reference/code-patterns.md` for code examples
+- See `references/code-patterns.md` for code examples
