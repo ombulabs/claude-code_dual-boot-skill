@@ -43,12 +43,20 @@ ls -la Gemfile.next
 
 ## Step 2: Add `next_rails` Gem
 
-Add the gem to the Gemfile (all environments, not just development):
+Add the gem to the Gemfile **at the root level, not inside any group**:
 
 ```ruby
 # Gemfile
 gem 'next_rails'
 ```
+
+**⚠️ If the gem is already present, verify its location.** Grep for it:
+
+```bash
+grep -n "next_rails" Gemfile
+```
+
+If it lives inside a `group :development`, `group :test`, or `group :development, :test do ... end` block, move it outside. Any `NextRails.next?` in `config/environments/production.rb` or `config/application.rb` will raise `NameError: uninitialized constant NextRails` when the app boots in production (e.g., during `assets:precompile RAILS_ENV=production`). The gem must be loadable in every environment where conditional config runs.
 
 Then install:
 
@@ -73,6 +81,8 @@ This creates:
 ## Step 4: Configure Gemfile with Version Conditionals
 
 The `next_rails` gem adds a `next?` helper method to your Gemfile. Use it to specify different versions of the dependency you are upgrading.
+
+**Do not dual-boot `config.load_defaults`.** It is post-upgrade work (rails-upgrade Step 10 / rails-load-defaults skill).
 
 ### Example: Rails version upgrade
 
