@@ -136,7 +136,9 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 4. Remove `next?` method from Gemfile
 5. Remove `next_rails` gem if no longer needed
 6. Remove `Gemfile.next` and replace `Gemfile.lock` with `Gemfile.next.lock`
-7. Run full test suite
+7. Update CI to remove dual-boot configuration
+8. Run full test suite
+9. Commit cleanup changes
 
 ---
 

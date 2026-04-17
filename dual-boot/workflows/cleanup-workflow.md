@@ -86,7 +86,7 @@ gem 'next_rails'
 
 ## Step 5: Remove Dual-Boot Files and Preserve Lock Versions
 
-Replace `Gemfile.lock` with `Gemfile.next.lock` to keep the exact gem versions that were tested during the upgrade — running `bundle install` from scratch could resolve to different versions.
+Replace `Gemfile.lock` with `Gemfile.next.lock` to keep the exact gem versions that were tested during the upgrade, and remove `Gemfile.next` which is no longer needed — running `bundle install` from scratch could resolve to different versions.
 
 ```bash
 rm Gemfile.next Gemfile.lock
