@@ -37,7 +37,7 @@ concern, and **this repo must not grow guidance that belongs to the siblings.**
 **In scope for this skill:**
 - Installing/configuring the `next_rails` gem
 - Gemfile conventions for two dependency sets (Rails, Ruby, or any core gem)
-- `NextRails.next?` branching patterns in application code
+- `NextRails.next?` / `NextRails.current?` branching patterns in application code
 - CI wiring for both dependency sets (GitHub Actions, CircleCI, Jenkins)
 - `Gemfile.next` / `Gemfile.next.lock` lifecycle
 - Cleanup after the upgrade lands
@@ -64,12 +64,18 @@ When in doubt: this skill answers "how do I run two versions side by side?", not
 These are load-bearing across the skill's content. If edits would weaken or
 contradict any of them, stop and surface the conflict instead of shipping.
 
-1. **Use `NextRails.next?`, never `respond_to?`** for version branching. See
-   `dual-boot/SKILL.md` for the rationale.
+1. **Branch with `next_rails`, never with `respond_to?`.** The gem exposes both
+   `NextRails.next?` and `NextRails.current?` — either is fine, but a given
+   codebase should pick **one** and apply it consistently so readers don't have
+   to mentally flip the polarity of each check. See `dual-boot/SKILL.md` for the
+   rationale on why `respond_to?` is the wrong tool.
 2. **Never run `next_rails --init` if `Gemfile.next` already exists** — it duplicates
    the `next?` method.
 3. **Add `next_rails` at the Gemfile root**, not inside a `:development` or `:test` group.
-4. **Keep the `NextRails.next?` (true) branch on top**, `else` (current version) below.
+4. **Order branches so the "next version" case reads on top.** With
+   `NextRails.next?`, that means the `if` branch is next-version code and `else`
+   is current-version code; with `NextRails.current?`, invert the branches so the
+   next-version code still appears first.
 5. **Cleanup preserves `Gemfile.next.lock` versions** — replace `Gemfile.lock` with
    `Gemfile.next.lock`, don't re-resolve.
 6. **Deprecation warnings must stay visible** during dual-boot.
