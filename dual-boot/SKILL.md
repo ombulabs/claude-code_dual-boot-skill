@@ -169,7 +169,7 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 1. **Ensure deprecation warnings are visible** — silenced deprecations mean you can't track upgrade progress
 2. **Never run `next_rails --init` if `Gemfile.next` exists** — it will duplicate the `next?` method
 3. **Always use `NextRails.next?` for version-dependent code** — never `respond_to?`
-4. **Test both versions** — run `bundle exec rspec` and `BUNDLE_GEMFILE=Gemfile.next bundle exec rspec`
+4. **Test both versions using the project's own test runner.** Detect it before running anything: check the `Gemfile` for `rspec-rails`, `parallel_tests`, `turbo_tests`, or `minitest-parallel_fork`; check whether the app has `spec/` or `test/`; prefer wrappers like `bin/test` when they exist. The `bundle exec rspec` commands in the workflows, examples, and CI reference are illustrative — substitute the detected command (e.g. `bin/rails test`, `bundle exec parallel_rspec spec/`, `bin/test`) and prefix with `BUNDLE_GEMFILE=Gemfile.next` (or the `next` CLI) to run it against the next dependency set.
 5. **Clean up after upgrade** — search for and remove all `NextRails.next?` branches
 6. **Add `next_rails` at the Gemfile root level** — not inside a `:development` or `:test` group
 
