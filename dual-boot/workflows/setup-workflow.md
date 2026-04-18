@@ -169,6 +169,10 @@ BUNDLE_GEMFILE=Gemfile.next bundle install
 
 ## Step 6: Verify Both Dependency Sets Work
 
+Use the project's own test runner. Detect it first: `rspec-rails` in the Gemfile and a `spec/` directory → RSpec; `test/` and no `spec/` → Minitest; a `bin/test` wrapper → prefer it; `parallel_tests` / `turbo_tests` → use their binaries.
+
+### RSpec
+
 ```bash
 # Run tests with current version
 bundle exec rspec
@@ -176,6 +180,18 @@ bundle exec rspec
 # Run tests with next version
 BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 ```
+
+### Minitest
+
+```bash
+# Run tests with current version
+bin/rails test
+
+# Run tests with next version
+BUNDLE_GEMFILE=Gemfile.next bin/rails test
+```
+
+If the project uses `rake test` instead of `bin/rails test`, or a parallel runner (`parallel_rspec`, `parallel_test`, `turbo_tests`), substitute that binary — the `BUNDLE_GEMFILE=Gemfile.next` prefix (or the `next` CLI) works with any of them.
 
 ---
 
@@ -205,6 +221,10 @@ DEPRECATION_TRACKER=save bundle exec rspec
 ```
 
 This creates `spec/support/deprecation_warning.shitlist.json` — a JSON file listing every unique deprecation warning found during the run. Review it to understand the scope of deprecations you need to address.
+
+### Minitest
+
+`DeprecationTracker.track_rspec` is RSpec-only. For Minitest apps, skip this step and use the custom deprecation behavior approach in `references/deprecation-tracking.md` (Step 3) — it raises on deprecations you've already fixed to prevent regressions while logging the rest.
 
 See `references/deprecation-tracking.md` for the full workflow (updating the shitlist, preventing regressions, CI with parallel execution, and alternative approaches).
 

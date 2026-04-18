@@ -97,8 +97,19 @@ mv Gemfile.next.lock Gemfile.lock
 
 ## Step 6: Run Full Test Suite
 
+Use the project's test runner:
+
 ```bash
+# RSpec
 bundle exec rspec
+
+# Minitest
+bin/rails test
+
+# Or a project wrapper / parallel runner
+bin/test
+bundle exec parallel_rspec spec/
+bundle exec turbo_tests
 ```
 
 Ensure all tests pass without dual-boot.
