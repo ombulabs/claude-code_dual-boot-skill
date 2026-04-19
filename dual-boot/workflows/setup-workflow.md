@@ -224,7 +224,17 @@ This creates `spec/support/deprecation_warning.shitlist.json` — a JSON file li
 
 ### Minitest
 
-`DeprecationTracker.track_rspec` is RSpec-only. For Minitest apps, skip this step and use the custom deprecation behavior approach in `references/deprecation-tracking.md` (Step 3) — it raises on deprecations you've already fixed to prevent regressions while logging the rest.
+For Minitest apps, use `DeprecationTracker.track_minitest` in `test/test_helper.rb`:
+
+```ruby
+DeprecationTracker.track_minitest(
+  shitlist_path: "test/support/deprecation_warning.shitlist.json",
+  mode: ENV.fetch("DEPRECATION_TRACKER", "save"),
+  transform_message: -> (message) { message.gsub("#{Rails.root}/", "") }
+)
+```
+
+Then generate the inventory with `DEPRECATION_TRACKER=save bin/rails test`. If `track_minitest` doesn't fit your setup (e.g., `minitest/parallel_fork`), fall back to the custom deprecation behavior approach in `references/deprecation-tracking.md` (Step 3).
 
 See `references/deprecation-tracking.md` for the full workflow (updating the shitlist, preventing regressions, CI with parallel execution, and alternative approaches).
 

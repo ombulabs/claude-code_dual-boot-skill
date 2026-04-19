@@ -70,10 +70,11 @@ Ensure `next_rails` is in your Gemfile at the **root level** (not inside a `grou
 gem 'next_rails'
 ```
 
-Then configure RSpec:
+Then configure your test runner.
+
+**RSpec** — in `spec/spec_helper.rb` (or `spec/rails_helper.rb`):
 
 ```ruby
-# spec/spec_helper.rb (or spec/rails_helper.rb)
 RSpec.configure do |config|
   DeprecationTracker.track_rspec(
     config,
@@ -84,13 +85,23 @@ RSpec.configure do |config|
 end
 ```
 
+**Minitest** — in `test/test_helper.rb`:
+
+```ruby
+DeprecationTracker.track_minitest(
+  shitlist_path: "test/support/deprecation_warning.shitlist.json",
+  mode: ENV.fetch("DEPRECATION_TRACKER", "save"),
+  transform_message: -> (message) { message.gsub("#{Rails.root}/", "") }
+)
+```
+
 - **`shitlist_path`** — where to save/read the deprecation inventory (required, no default)
 - **`mode`** — defaults to `save` so it always tracks
 - **`transform_message`** — strips the Rails root path from messages so the shitlist is portable across environments
 
 ### Save the Deprecation Shitlist
 
-Run the test suite with `DEPRECATION_TRACKER=save` to collect all deprecation warnings:
+Run the test suite with `DEPRECATION_TRACKER=save` to collect all deprecation warnings (substitute your project's test command — e.g. `bundle exec rspec`, `bin/rails test`, `bin/test`):
 
 ```bash
 DEPRECATION_TRACKER=save bundle exec rspec
@@ -98,7 +109,7 @@ DEPRECATION_TRACKER=save bundle exec rspec
 
 This generates `spec/support/deprecation_warning.shitlist.json` — a JSON file listing every unique deprecation warning found during the run.
 
-> **Note:** The shitlist path is hardcoded to `spec/support/deprecation_warning.shitlist.json`. Make sure this directory exists.
+> **Note:** Make sure the directory for `shitlist_path` exists before running.
 
 ### Prevent Regressions
 
@@ -153,9 +164,8 @@ The exact collection mechanism depends on your CI setup:
 ### Limitations
 
 - **Not compatible with `minitest/parallel_fork`** — use standard minitest or RSpec
-- **Shitlist path is hardcoded** — must be `spec/support/deprecation_warning.shitlist.json`
 - **No native parallel support** — requires manual merge when using CI parallelism (see above)
-- **RSpec only** for the `track_rspec` helper — Minitest requires manual integration
+- **Supports RSpec (`track_rspec`) and Minitest (`track_minitest`)** — other frameworks require manual integration
 
 ---
 
