@@ -97,7 +97,7 @@ mv Gemfile.next.lock Gemfile.lock
 
 ## Step 6: Run Full Test Suite
 
-Use the project's test runner:
+Run the project's detected test command (see SKILL.md Key Principle #4). Pick the one that matches this project:
 
 ```bash
 # RSpec
