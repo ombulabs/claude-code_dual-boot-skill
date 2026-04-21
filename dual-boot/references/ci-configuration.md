@@ -2,6 +2,22 @@
 
 Run your test suite against both dependency sets in CI. These examples use `BUNDLE_GEMFILE=Gemfile.next` to switch between the current and next dependency sets — this works the same whether you are upgrading Rails, Ruby, or another core gem.
 
+## Test Command
+
+Every example below runs `bundle exec rspec` as a stand-in. Detect and substitute the project's actual command everywhere you see it:
+
+| Runner | Command |
+|---|---|
+| RSpec | `bundle exec rspec` |
+| Minitest (Rails) | `bin/rails test` |
+| Minitest (rake) | `bundle exec rake test` |
+| parallel_tests (RSpec) | `bundle exec parallel_rspec spec/` |
+| parallel_tests (Minitest) | `bundle exec parallel_test test/` |
+| turbo_tests | `bundle exec turbo_tests` |
+| Project wrapper | `bin/test` / `bin/ci` (prefer when present) |
+
+The matrix / job structure in each CI example is runner-agnostic — only the single "run tests" line needs swapping.
+
 ---
 
 ## GitHub Actions
@@ -49,7 +65,7 @@ jobs:
           bundle exec rails db:schema:load
 
       - name: Run Tests
-        run: bundle exec rspec
+        run: bundle exec rspec  # Minitest: bin/rails test  |  wrapper: bin/test
 ```
 
 ---
@@ -73,7 +89,7 @@ jobs:
       - checkout
       - run: bundle install
       - run: bundle exec rails db:create db:schema:load
-      - run: bundle exec rspec
+      - run: bundle exec rspec  # Minitest: bin/rails test  |  wrapper: bin/test
 
   build-next:
     docker:
@@ -87,7 +103,7 @@ jobs:
       - checkout
       - run: bundle install
       - run: bundle exec rails db:create db:schema:load
-      - run: bundle exec rspec
+      - run: bundle exec rspec  # Minitest: bin/rails test  |  wrapper: bin/test
 
 workflows:
   version: 2
@@ -122,7 +138,7 @@ pipeline {
 
     stage('Test Current') {
       steps {
-        sh 'bundle exec rspec'
+        sh 'bundle exec rspec'  // Minitest: bin/rails test  |  wrapper: bin/test
       }
     }
 
@@ -133,7 +149,7 @@ pipeline {
       steps {
         sh 'bundle install'
         sh 'bundle exec rails db:create db:schema:load'
-        sh 'bundle exec rspec'
+        sh 'bundle exec rspec'  // Minitest: bin/rails test  |  wrapper: bin/test
       }
     }
   }
