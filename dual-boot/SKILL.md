@@ -46,29 +46,34 @@ When writing code that must work with both the current and target versions, **al
 
 ### Pattern
 
+The right time for a conditional is when the old code actually **breaks** on the next version (removed constant, removed method, incompatible signature) — not when it merely emits a deprecation warning. Deprecations should be fixed by replacing the code outright, since the new form works on both versions.
+
+Example: `ActionDispatch::Http::ParameterFilter` was removed in Rails 6.1 (replaced by `ActiveSupport::ParameterFilter`). Referencing the old constant under 6.1 raises `NameError`, so a conditional is required during 6.0 → 6.1 dual-boot.
+
 ❌ **WRONG — Do NOT use `respond_to?`:**
 ```ruby
-if config.respond_to?(:fixture_paths=)
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+if defined?(ActiveSupport::ParameterFilter)
+  filter = ActiveSupport::ParameterFilter.new([:password])
 else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
+  filter = ActionDispatch::Http::ParameterFilter.new([:password])
 end
 ```
 
 ✅ **CORRECT — Use `NextRails.next?`:**
 ```ruby
 if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+  filter = ActiveSupport::ParameterFilter.new([:password])
 else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
+  filter = ActionDispatch::Http::ParameterFilter.new([:password])
 end
 ```
 
 ### When to Apply
 
 Use `NextRails.next?` branching for:
-- **Configuration changes** (e.g., `fixture_path` → `fixture_paths`)
-- **API changes** (e.g., method renames, changed signatures, removed methods)
+- **Removed constants or methods** (e.g., `ActionDispatch::Http::ParameterFilter` removed in Rails 6.1, `update_attributes` removed in Rails 6.1)
+- **Incompatible signature or return-type changes** (e.g., a method that now returns a different object type)
+- **Deprecations are NOT a reason to branch** — if the new API works on both versions, just replace the call site. Reserve conditionals for code that otherwise breaks under the next version.
 - **Gem version differences** (e.g., different gem APIs across dependency versions)
 - **Initializer changes** (e.g., different middleware, different default settings)
 - **Ruby version differences** (e.g., syntax changes, stdlib removals)

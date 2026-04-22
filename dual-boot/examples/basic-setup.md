@@ -4,7 +4,7 @@ This example walks through a Rails version upgrade. The same approach applies wh
 
 ## Scenario
 
-You have a Rails 7.0 application and want to upgrade to Rails 7.1. You want to set up dual-boot to test both versions during the transition.
+You have a Rails 6.0 application and want to upgrade to Rails 6.1. You want to set up dual-boot to test both versions during the transition.
 
 ---
 
@@ -36,9 +36,9 @@ def next?
 end
 
 if next?
-  gem 'rails', '~> 7.1.0'
+  gem 'rails', '~> 6.1.0'
 else
-  gem 'rails', '~> 7.0.0'
+  gem 'rails', '~> 6.0.0'
 end
 
 gem 'next_rails'
@@ -58,27 +58,29 @@ BUNDLE_GEMFILE=Gemfile.next bundle install
 ### 5. Run Tests Against Both
 
 ```bash
-# Current version (7.0)
+# Current version (6.0)
 bundle exec rspec
 # => All green
 
-# Next version (7.1)
+# Next version (6.1)
 BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 # => Some failures — fix using NextRails.next? branching
 ```
 
 ### 6. Fix a Breaking Change
 
-Rails 7.1 changed `fixture_path` to `fixture_paths`. Fix it:
+Rails 6.1 removed `ActionDispatch::Http::ParameterFilter` — referencing it under 6.1 raises `NameError: uninitialized constant`. The replacement `ActiveSupport::ParameterFilter` does not exist on 6.0, so a conditional is required:
 
 ```ruby
-# spec/rails_helper.rb
+# app/services/log_sanitizer.rb
 if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+  filter = ActiveSupport::ParameterFilter.new([:password, :token])
 else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
+  filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
 end
 ```
+
+Note: a pure deprecation warning (old API still works under next) is **not** a reason to branch — replace the call site directly. Reserve `NextRails.next?` for code that would otherwise fail to load or run.
 
 ### 7. Verify Both Pass
 
@@ -90,26 +92,26 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec  # Next: green
 ### 8. Commit
 
 ```bash
-git add Gemfile Gemfile.next Gemfile.next.lock spec/rails_helper.rb
-git commit -m "Set up dual-boot for Rails 7.0 → 7.1 upgrade"
+git add Gemfile Gemfile.next Gemfile.next.lock app/services/log_sanitizer.rb
+git commit -m "Set up dual-boot for Rails 6.0 → 6.1 upgrade"
 ```
 
 ---
 
 ## After Upgrade Is Complete
 
-Once you're fully on Rails 7.1, clean up:
+Once you're fully on Rails 6.1, clean up:
 
 ```ruby
-# spec/rails_helper.rb — BEFORE cleanup
+# app/services/log_sanitizer.rb — BEFORE cleanup
 if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+  filter = ActiveSupport::ParameterFilter.new([:password, :token])
 else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
+  filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
 end
 
-# spec/rails_helper.rb — AFTER cleanup
-config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+# app/services/log_sanitizer.rb — AFTER cleanup
+filter = ActiveSupport::ParameterFilter.new([:password, :token])
 ```
 
 See `workflows/cleanup-workflow.md` for the full cleanup process.
