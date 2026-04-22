@@ -46,38 +46,43 @@ When writing code that must work with both the current and target versions, **al
 
 ### Pattern
 
-The right time for a conditional is when the old code actually **breaks** on the next version (removed constant, removed method, incompatible signature) — not when it merely emits a deprecation warning. Deprecations should be fixed by replacing the code outright, since the new form works on both versions.
+Reach for `NextRails.next?` only when the old and new APIs are genuinely **two-sided** — the old one raises on the next version and the new one doesn't exist on the current version. A plain deprecation warning is *not* a reason to branch: if the new API works on both sides, migrate the call site directly.
 
-Example: `ActionDispatch::Http::ParameterFilter` was removed in Rails 6.1 (replaced by `ActiveSupport::ParameterFilter`). Referencing the old constant under 6.1 raises `NameError`, so a conditional is required during 6.0 → 6.1 dual-boot.
-
-❌ **WRONG — Do NOT use feature detection (`defined?`, `respond_to?`, etc.):**
+❌ **WRONG — Do NOT use feature detection (`respond_to?`, `defined?`, etc.):**
 ```ruby
-if defined?(ActiveSupport::ParameterFilter)
-  filter = ActiveSupport::ParameterFilter.new([:password])
+if Project.respond_to?(:ignored_columns=)
+  self.ignored_columns += [:category]
 else
-  filter = ActionDispatch::Http::ParameterFilter.new([:password])
+  ignore_columns :category
 end
 ```
 
 ✅ **CORRECT — Use `NextRails.next?`:**
 ```ruby
-if NextRails.next?
-  filter = ActiveSupport::ParameterFilter.new([:password])
-else
-  filter = ActionDispatch::Http::ParameterFilter.new([:password])
+# app/models/project.rb
+class Project < ActiveRecord::Base
+  if NextRails.next?
+    self.ignored_columns += [:category]
+  else
+    ignore_columns :category
+  end
 end
 ```
+
+This is a genuine two-sided case (Rails 4.2 → 5.0): on 4.2 the app uses the [`ignorable`](https://github.com/nthj/ignorable) gem's `ignore_columns` class method. Rails 5.0 introduced native `ignored_columns=` with different syntax, and once the gem is dropped on the 5.0 side, `ignore_columns` raises `NoMethodError`. `ignored_columns=` raises `NoMethodError` on 4.2 where it doesn't yet exist.
+
+Put the next-version branch on top so cleanup is mechanical: after the upgrade, keep the `if` body and drop the `else`. See `references/code-patterns.md` for more examples.
 
 ### When to Apply
 
 Use `NextRails.next?` branching for:
-- **Removed constants or methods** (e.g., `ActionDispatch::Http::ParameterFilter` removed in Rails 6.1, `update_attributes` removed in Rails 6.1)
-- **Incompatible signature or return-type changes** (e.g., a method that now returns a different object type)
-- **Gem version differences where the old API is gone in the new version** (not just renamed-with-alias)
-- **Initializer changes that break on one side** (e.g., middleware removed from defaults, config key that raises on the other version)
+- **Removed methods or constants** where the replacement only exists on the new side (e.g., a gem-provided method replaced by a native Rails method with different syntax)
+- **Incompatible signature or return-type changes** where the old and new forms genuinely fail on opposite sides
+- **Gem version differences** where the gem's API is different across versions pinned to each Rails version
+- **Initializer changes** where a config or middleware raises on one side
 - **Ruby version differences** (e.g., syntax changes, stdlib removals)
 
-**Not a reason to branch:** deprecation warnings. If the new API works on both versions, migrate the call site directly — do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "When NOT to Branch: Deprecations".
+**Not a reason to branch:** plain deprecation warnings. If the new API works on both versions (e.g. `config.fixture_path=` → `config.fixture_paths=`, `update_attributes` → `update` before its removal), migrate the call site directly — do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "When NOT to Branch: Deprecations".
 
 ---
 

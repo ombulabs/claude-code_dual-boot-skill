@@ -28,16 +28,20 @@ For each file found in Step 1, keep only the `NextRails.next?` (true) branch and
 
 ### Before:
 ```ruby
-if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
+class Project < ActiveRecord::Base
+  if NextRails.next?
+    self.ignored_columns += [:category]
+  else
+    ignore_columns :category
+  end
 end
 ```
 
 ### After:
 ```ruby
-config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+class Project < ActiveRecord::Base
+  self.ignored_columns += [:category]
+end
 ```
 
 ---

@@ -8,20 +8,20 @@ Use `NextRails.next?` anywhere your application code must behave differently bet
 
 ---
 
-## Rails API Removals
+## Rails API Changes Requiring a Conditional
 
-### `ActionDispatch::Http::ParameterFilter` removed in Rails 6.1
+### `ignorable` gem → native `ignored_columns=` (Rails 4.2 → 5.0)
 
-Under Rails 6.1 the old constant raises `NameError`; under Rails 6.0 the new one does not yet exist. A conditional is required during dual-boot.
+An app using the [`ignorable`](https://github.com/nthj/ignorable) gem to ignore columns on Rails 4.2 hits a genuine two-sided case when upgrading to 5.0, which introduced a native `ignored_columns=` with different syntax. If the gem is dropped on the 5.0 side (since Rails now has the feature), `ignore_columns :category` raises `NoMethodError` there; `self.ignored_columns += [:category]` raises `NoMethodError` on 4.2 where the setter doesn't exist yet.
 
 ```ruby
-# app/services/log_sanitizer.rb
-if NextRails.next?
-  filter = ActiveSupport::ParameterFilter.new([:password, :token])
-  filter.filter(params)
-else
-  filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
-  filter.filter(params)
+# app/models/project.rb
+class Project < ActiveRecord::Base
+  if NextRails.next?
+    self.ignored_columns += [:category]
+  else
+    ignore_columns :category
+  end
 end
 ```
 
@@ -49,7 +49,7 @@ end
 config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
 ```
 
-Same rule applies to `serialize :preferences, coder: JSON` vs. the older positional form, `update` vs. `update_attributes` (prior to 6.1 removal), and most Rails API evolution: if both versions accept the new form, migrate call sites directly and skip the conditional.
+Same rule applies to `serialize :preferences, coder: JSON` vs. the older positional form, `update` vs. `update_attributes` (prior to the 6.1 removal), and most Rails API evolution: if both versions accept the new form, migrate call sites directly and skip the conditional.
 
 ---
 

@@ -4,7 +4,7 @@ This example walks through a Rails version upgrade. The same approach applies wh
 
 ## Scenario
 
-You have a Rails 6.0 application and want to upgrade to Rails 6.1. You want to set up dual-boot to test both versions during the transition.
+You have a Rails 4.2 application and want to upgrade to Rails 5.0. You want to set up dual-boot to test both versions during the transition.
 
 ---
 
@@ -36,9 +36,10 @@ def next?
 end
 
 if next?
-  gem 'rails', '~> 6.1.0'
+  gem 'rails', '~> 5.0.0'
 else
-  gem 'rails', '~> 6.0.0'
+  gem 'rails', '~> 4.2.0'
+  gem 'ignorable' # used for `ignore_columns` on 4.2; dropped on 5.0
 end
 
 gem 'next_rails'
@@ -58,31 +59,29 @@ BUNDLE_GEMFILE=Gemfile.next bundle install
 ### 5. Run Tests Against Both
 
 ```bash
-# Current version (6.0)
+# Current version (4.2)
 bundle exec rspec
 # => All green
 
-# Next version (6.1)
+# Next version (5.0)
 BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 # => Some failures — fix using NextRails.next? branching
 ```
 
 ### 6. Fix a Breaking Change
 
-Rails 6.1 removed `ActionDispatch::Http::ParameterFilter` — referencing it under 6.1 raises `NameError: uninitialized constant`. The replacement `ActiveSupport::ParameterFilter` does not exist on 6.0, so a conditional is required:
+Rails 5.0 introduced a native `ignored_columns=` setter, replacing the `ignorable` gem's `ignore_columns` class method. With the gem dropped on the 5.0 side, `ignore_columns` raises `NoMethodError` there; `ignored_columns=` raises `NoMethodError` on 4.2 where it doesn't yet exist. A conditional is required:
 
 ```ruby
-# app/services/log_sanitizer.rb
-if NextRails.next?
-  filter = ActiveSupport::ParameterFilter.new([:password, :token])
-else
-  filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
+# app/models/project.rb
+class Project < ActiveRecord::Base
+  if NextRails.next?
+    self.ignored_columns += [:category]
+  else
+    ignore_columns :category
+  end
 end
-
-filter.filter(params)
 ```
-
-Note: a pure deprecation warning (old API still works under next) is **not** a reason to branch — replace the call site directly. Reserve `NextRails.next?` for code that would otherwise fail to load or run.
 
 ### 7. Verify Both Pass
 
@@ -94,29 +93,30 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec  # Next: green
 ### 8. Commit
 
 ```bash
-git add Gemfile Gemfile.next Gemfile.next.lock app/services/log_sanitizer.rb
-git commit -m "Set up dual-boot for Rails 6.0 → 6.1 upgrade"
+git add Gemfile Gemfile.next Gemfile.next.lock app/models/project.rb
+git commit -m "Set up dual-boot for Rails 4.2 → 5.0 upgrade"
 ```
 
 ---
 
 ## After Upgrade Is Complete
 
-Once you're fully on Rails 6.1, clean up:
+Once you're fully on Rails 5.0, clean up:
 
 ```ruby
-# app/services/log_sanitizer.rb — BEFORE cleanup
-if NextRails.next?
-  filter = ActiveSupport::ParameterFilter.new([:password, :token])
-else
-  filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
+# app/models/project.rb — BEFORE cleanup
+class Project < ActiveRecord::Base
+  if NextRails.next?
+    self.ignored_columns += [:category]
+  else
+    ignore_columns :category
+  end
 end
 
-filter.filter(params)
-
-# app/services/log_sanitizer.rb — AFTER cleanup
-filter = ActiveSupport::ParameterFilter.new([:password, :token])
-filter.filter(params)
+# app/models/project.rb — AFTER cleanup
+class Project < ActiveRecord::Base
+  self.ignored_columns += [:category]
+end
 ```
 
 See `workflows/cleanup-workflow.md` for the full cleanup process.
