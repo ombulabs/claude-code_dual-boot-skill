@@ -29,15 +29,15 @@ This skill helps you:
 
 ---
 
-## CRITICAL: Always Use `NextRails.next?` — Never Use `respond_to?`
+## CRITICAL: Always Use `NextRails.next?` — Never Use Feature Detection
 
-When writing code that must work with both the current and target versions, **always use `NextRails.next?`** from the `next_rails` gem. Never use `respond_to?` or other feature-detection patterns for version branching.
+When writing code that must work with both the current and target versions, **always use `NextRails.next?`** from the `next_rails` gem. Never use `respond_to?`, `defined?`, `const_defined?`, or any other feature-detection pattern for version branching.
 
-**Why `respond_to?` is problematic:**
-- **Hard to understand:** readers must know which version introduced a method to grasp the intent
-- **Hard to maintain:** `respond_to?` checks pile up and become impossible to clean up because their purpose is lost
-- **Fragile:** may give wrong results if gems monkey-patch methods in or out
-- **Obscures intent:** the code says "does this method exist?" when it means "are we on the next Rails version?"
+**Why feature detection is problematic:**
+- **Hard to understand:** readers must know which version introduced a method or constant to grasp the intent
+- **Hard to maintain:** `respond_to?` / `defined?` checks pile up and become impossible to clean up because their purpose is lost
+- **Fragile:** may give wrong results if gems monkey-patch methods or constants in or out
+- **Obscures intent:** the code says "does this exist?" when it means "are we on the next Rails version?"
 
 **Why `NextRails.next?` is better:**
 - **Explicit and readable:** anyone reading the code immediately understands "this branch is for the next version"
@@ -50,7 +50,7 @@ The right time for a conditional is when the old code actually **breaks** on the
 
 Example: `ActionDispatch::Http::ParameterFilter` was removed in Rails 6.1 (replaced by `ActiveSupport::ParameterFilter`). Referencing the old constant under 6.1 raises `NameError`, so a conditional is required during 6.0 → 6.1 dual-boot.
 
-❌ **WRONG — Do NOT use `respond_to?`:**
+❌ **WRONG — Do NOT use feature detection (`defined?`, `respond_to?`, etc.):**
 ```ruby
 if defined?(ActiveSupport::ParameterFilter)
   filter = ActiveSupport::ParameterFilter.new([:password])
@@ -73,10 +73,11 @@ end
 Use `NextRails.next?` branching for:
 - **Removed constants or methods** (e.g., `ActionDispatch::Http::ParameterFilter` removed in Rails 6.1, `update_attributes` removed in Rails 6.1)
 - **Incompatible signature or return-type changes** (e.g., a method that now returns a different object type)
-- **Deprecations are NOT a reason to branch** — if the new API works on both versions, just replace the call site. Reserve conditionals for code that otherwise breaks under the next version.
-- **Gem version differences** (e.g., different gem APIs across dependency versions)
-- **Initializer changes** (e.g., different middleware, different default settings)
+- **Gem version differences where the old API is gone in the new version** (not just renamed-with-alias)
+- **Initializer changes that break on one side** (e.g., middleware removed from defaults, config key that raises on the other version)
 - **Ruby version differences** (e.g., syntax changes, stdlib removals)
+
+**Not a reason to branch:** deprecation warnings. If the new API works on both versions, migrate the call site directly — do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "When NOT to Branch: Deprecations".
 
 ---
 

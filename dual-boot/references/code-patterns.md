@@ -18,18 +18,10 @@ Under Rails 6.1 the old constant raises `NameError`; under Rails 6.0 the new one
 # app/services/log_sanitizer.rb
 if NextRails.next?
   filter = ActiveSupport::ParameterFilter.new([:password, :token])
+  filter.filter(params)
 else
   filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
-end
-```
-
-### config/initializers/session_store.rb
-
-```ruby
-if NextRails.next?
-  Rails.application.config.session_store :cookie_store, key: '_myapp_session'
-else
-  Rails.application.config.session_store :cookie_store, key: '_myapp_session', secure: Rails.env.production?
+  filter.filter(params)
 end
 ```
 

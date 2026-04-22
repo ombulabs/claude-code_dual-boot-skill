@@ -78,6 +78,8 @@ if NextRails.next?
 else
   filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
 end
+
+filter.filter(params)
 ```
 
 Note: a pure deprecation warning (old API still works under next) is **not** a reason to branch — replace the call site directly. Reserve `NextRails.next?` for code that would otherwise fail to load or run.
@@ -110,8 +112,11 @@ else
   filter = ActionDispatch::Http::ParameterFilter.new([:password, :token])
 end
 
+filter.filter(params)
+
 # app/services/log_sanitizer.rb — AFTER cleanup
 filter = ActiveSupport::ParameterFilter.new([:password, :token])
+filter.filter(params)
 ```
 
 See `workflows/cleanup-workflow.md` for the full cleanup process.
