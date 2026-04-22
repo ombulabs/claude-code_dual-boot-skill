@@ -6,6 +6,8 @@ Use `NextRails.next?` anywhere your application code must behave differently bet
 
 **Only branch when the old code actually breaks on the next version.** A deprecation warning is not a reason for a conditional — if the new API works on both, replace the call site directly and let the deprecation disappear on its own. Reserve `NextRails.next?` for removed constants, removed methods, or incompatible signature/return-type changes that would raise an error otherwise.
 
+The version numbers in the example below are from a Rails 4.2 → 5.0 upgrade, but the pattern applies any time a gem-provided API is replaced by a native Rails API with different syntax (or vice versa) — the same shape works for any adjacent-version boundary where dropping the gem on one side makes the call unavailable.
+
 ---
 
 ## Rails API Changes Requiring a Conditional
@@ -71,21 +73,6 @@ end
 if NextRails.next?
   # Ruby 3.2+ uses a different default for Regexp timeout
   Regexp.timeout = 5
-end
-```
-
----
-
-## Core Dependency Changes
-
-### Sidekiq API change (6.x → 7.x)
-
-```ruby
-# config/initializers/sidekiq.rb
-if NextRails.next?
-  Sidekiq.default_job_options = { 'retry' => 3 }
-else
-  Sidekiq.default_worker_options = { 'retry' => 3 }
 end
 ```
 

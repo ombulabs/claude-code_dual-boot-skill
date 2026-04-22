@@ -26,6 +26,8 @@ next_rails --init
 
 ### 3. Configure Gemfile
 
+If your 4.2 app already depends on a gem that needs dropping on the 5.0 side (the `ignorable` gem in this example), move it from the Gemfile root into the `else` branch so it's installed only for Rails 4.2.
+
 ```ruby
 # Gemfile
 
