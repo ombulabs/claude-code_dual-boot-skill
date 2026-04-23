@@ -142,7 +142,7 @@ See `workflows/setup-workflow.md` for the complete step-by-step process.
 3. Add `next_rails` gem at the Gemfile root and run `bundle install`
 4. Run `next_rails --init` (only if `Gemfile.next` does NOT exist)
 5. Configure `DeprecationTracker` (ask upfront whether CI runs tests in parallel)
-6. Capture the deprecation inventory: `DEPRECATION_TRACKER=save bundle exec rspec`
+6. Capture the deprecation inventory: `DEPRECATION_TRACKER=save bundle exec rspec` (substitute the project's test command: `bin/rails test`, `bin/test`, `bundle exec parallel_rspec spec/`, etc.)
 7. Fix current-side deprecations unconditionally (Tier 1, no `NextRails.next?`)
 
 *Phase 2, dual-boot (the version hop):*
