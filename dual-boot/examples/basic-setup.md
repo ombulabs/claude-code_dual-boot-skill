@@ -71,6 +71,10 @@ BUNDLE_GEMFILE=Gemfile.next bundle install
 
 ### 5. Run Tests Against Both
 
+This example uses RSpec. If your project uses Minitest, substitute `bin/rails test` (or `rake test`) for `bundle exec rspec` throughout. The `BUNDLE_GEMFILE=Gemfile.next` prefix works with any test runner. See `workflows/setup-workflow.md` Step 11 for the full detection logic (RSpec, Minitest, `bin/test`, `parallel_tests`, `turbo_tests`).
+
+**RSpec:**
+
 ```bash
 # Current version (4.2)
 bundle exec rspec
@@ -79,6 +83,16 @@ bundle exec rspec
 # Next version (5.0)
 BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 # => Some failures — fix using NextRails.next? branching
+```
+
+**Minitest equivalent:**
+
+```bash
+# Current version (4.2)
+bin/rails test
+
+# Next version (5.0)
+BUNDLE_GEMFILE=Gemfile.next bin/rails test
 ```
 
 ### 6. Fix a Breaking Change
