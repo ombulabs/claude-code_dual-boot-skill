@@ -10,7 +10,7 @@ The version numbers in the example below are from a Rails 4.2 → 5.0 upgrade, b
 
 ---
 
-## Rails API Changes Requiring a Conditional
+## The Canonical Case: Gemfile Version Pin
 
 ### `ActionController::TestRequest.new` → `.create` (Rails 4.2 → 5.0)
 
@@ -25,11 +25,32 @@ test_request =
   end
 ```
 
+This is genuinely two-sided — the `7.1.0` pin fails resolution on the 7.0 side and vice versa — so the conditional is required for bundler to resolve at all. Every other use of `NextRails.next?` is secondary.
+
 ---
 
-## When NOT to Branch: Deprecations
+## Three-Tier Approach for Application Code
 
-If the **new** API exists on the current version too, there is no breaking change — just replace the call site. Wrapping a deprecation in `NextRails.next?` adds dead branches you'll have to clean up for no benefit.
+When a version gap affects application code (not the Gemfile), pick the **lowest tier that works**. Lower tiers are cheaper to read, cheaper to clean up, and do not leave dead branches behind. Climb tiers only when the lower option actually breaks.
+
+| Tier | Technique | When |
+|------|-----------|------|
+| 1 | Unconditional migration — use the new API on both sides. | Both Rails versions accept the new form (the typical Rails deprecation case). |
+| 2 | `NextRails.next?` conditional at the call site. | New API doesn't exist on current (or old API raises on next). Smaller gaps (up to ~20 call sites). |
+| 3 | Backport / forwardport shim — monkey-patch in one file. | Same gap spans an application layer (all controllers, all mailers) or affects ~20+ call sites. |
+
+**Cleanup at the end of the dual-boot is mechanical in all three tiers:**
+- Tier 1 — nothing to clean; the code is already unconditional.
+- Tier 2 — drop `else` branches, keep the `if NextRails.next?` body.
+- Tier 3 — delete the shim file.
+
+See `workflows/cleanup-workflow.md` for the full cleanup procedure.
+
+---
+
+### Tier 1: Unconditional Migration (preferred)
+
+If the **new** API exists on the current version too, there is no breaking change — just replace the call site. Wrapping a deprecation in `NextRails.next?` adds dead branches you'll have to clean up for no benefit. This is the case for almost every Rails-core deprecation at an adjacent-minor boundary because Rails ships the replacement one version before it removes the old form.
 
 ❌ **WRONG — `fixture_path` → `fixture_paths` (deprecation only):**
 
@@ -50,6 +71,75 @@ config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
 ```
 
 Same rule applies to `serialize :preferences, coder: JSON` vs. the older positional form, `update` vs. `update_attributes` (prior to the 6.1 removal), and most Rails API evolution: if both versions accept the new form, migrate call sites directly and skip the conditional.
+
+---
+
+### Tier 2: `NextRails.next?` Conditional (for a few call sites)
+
+Reach for a conditional when the gap is genuinely two-sided — the new API doesn't exist on current, or the old one raises on next — and the affected call sites are few (up to ~20). Common triggers:
+
+- **A third-party gem tied to the Rails version has a two-sided API break.** Rails versions often pull in different majors of gems like Rack, minitest, or rspec-rails, or a Rails major replaces a gem-provided feature with a native API using different syntax.
+- **You treat deprecations as errors** via `ActiveSupport::Deprecation.behavior = :raise`. A deprecated-but-still-working Rails call now raises on the next side, so the branch lets you use the new API on next and keep the old form on current.
+- **The Rails upgrade also forces a Ruby upgrade** with stdlib extractions or syntax differences.
+
+**Example — `ignorable` gem → native `ignored_columns=` (Rails 4.2 → 5.0):**
+
+An app using the [`ignorable`](https://github.com/nthj/ignorable) gem to ignore columns on Rails 4.2 hits a genuine two-sided case when upgrading to 5.0, which introduced a native `ignored_columns=` with different syntax. If the gem is dropped on the 5.0 side (since Rails now has the feature), `ignore_columns :category` raises `NoMethodError` there; `self.ignored_columns += [:category]` raises `NoMethodError` on 4.2 where the setter doesn't exist yet.
+
+```ruby
+# app/models/project.rb
+class Project < ActiveRecord::Base
+  if NextRails.next?
+    self.ignored_columns += [:category]
+  else
+    ignore_columns :category
+  end
+end
+```
+
+Put the next-version branch on top so cleanup is mechanical: after the upgrade, keep the `if` body and drop the `else`.
+
+---
+
+### Tier 3: Backport / Forwardport Shim (for many call sites)
+
+When a version gap spans an application layer (all controllers, all mailers, all models with the same concern) or affects ~20+ call sites, a single monkey-patch in an initializer (for runtime gaps) or `test_helper.rb` / `spec_helper.rb` (for test-only gaps) lets all call sites stay identical on both sides. The shim makes the lagging version behave like the other one — usually by redefining a method to delegate to an existing equivalent. This is cleaner than scattering dozens of `NextRails.next?` branches and much simpler to remove at cleanup: delete the shim file.
+
+**Two directions:**
+- **Backport** — teach the *current* (older) version to behave like the next one, so all call sites are written using the new shape. More common because the new shape is usually the one you want to keep after cleanup.
+- **Forwardport** — teach the *next* (newer) version to behave like the current one, so existing call sites keep working unchanged while you migrate them gradually.
+
+Pick whichever direction lets the shared call-site code read best.
+
+**Example — `ActionController::Parameters#values` backport (Rails 7.0 → 7.1):**
+
+Rails 7.1 changed [`ActionController::Parameters#values`](https://github.com/rails/rails/pull/44816) to return an array of `ActionController::Parameters` objects instead of an array of plain hashes. Any controller or service that calls `params.values` and treats the result as hashes will behave differently between the two sides. With many such call sites, a shim is cleaner than scattering conditionals:
+
+```ruby
+# config/initializers/ac_parameters_values_backport.rb
+
+# Backport of Rails 7.1's ActionController::Parameters#values behavior so that
+# call sites on the Rails 7.0 side also receive an array of
+# ActionController::Parameters (not plain hashes).
+# Delete this file once the upgrade to Rails 7.1 is complete.
+# Reference: https://github.com/rails/rails/pull/44816
+
+if !NextRails.next?
+  module ActionController
+    class Parameters
+      def values
+        to_enum(:each_value).to_a
+      end
+    end
+  end
+end
+```
+
+With the shim loaded, every `params.values` call across the app returns the 7.1 shape on both sides — no per-call-site branching. After the upgrade, delete `ac_parameters_values_backport.rb` and nothing else needs to change.
+
+**Caveats for Tier 3:**
+- Monkey-patches affect the whole process. Keep the shim narrow (one or two methods), well-commented with a removal marker, and guarded with `if !NextRails.next?` (for a backport) or `if NextRails.next?` (for a forwardport) so it only loads on the side that needs it.
+- If the signature difference between versions is severe enough that a faithful shim isn't possible, fall back to Tier 2 — a conditional at each call site is clearer than a lossy shim.
 
 ---
 
