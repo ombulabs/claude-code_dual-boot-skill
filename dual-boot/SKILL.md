@@ -46,7 +46,29 @@ When code would break on one version and needs a different implementation on the
 
 ### Pattern
 
-Reach for `NextRails.next?` only when the old and new APIs are genuinely **two-sided** — the old one raises on the next version and the new one doesn't exist on the current version. A plain deprecation warning is *not* a reason to branch: if the new API works on both sides, migrate the call site directly.
+Every dual-boot has exactly one conditional that is always required: the Gemfile version pin. That is the canonical use of `next?`. App-code `NextRails.next?` is the exception, reserved for genuine two-sided breakage that cannot be resolved by migrating to a common API.
+
+**The canonical conditional, the Gemfile version pin:**
+```ruby
+# Gemfile
+if next?
+  gem 'rails', '~> 7.1.0'
+else
+  gem 'rails', '~> 7.0.0'
+end
+```
+
+The two pins genuinely fail resolution on opposite sides, so this conditional is required for bundler to resolve at all. Most dual-boots need nothing more than this plus a handful of gem-version pins for dependencies tied to the Rails version.
+
+**Three-tier approach for application code.** When a version gap affects application code, pick the lowest tier that works:
+
+1. **Tier 1: Unconditional migration (preferred).** Both versions accept the new form, so just use it everywhere. This covers the typical Rails deprecation case because Rails ships the replacement one version before it removes the old form.
+2. **Tier 2: `NextRails.next?` conditional at the call site.** The new API doesn't exist on current, or the old one raises on next, and the affected call sites are few (up to ~20).
+3. **Tier 3: Backport or forwardport shim.** The gap spans an application layer (all controllers, all mailers, all models with the same concern) or affects ~20+ call sites. A single monkey-patch in one initializer (for runtime gaps) or `test_helper.rb` / `spec_helper.rb` (for test-only gaps) keeps call sites identical on both sides and collapses to a single-file delete at cleanup.
+
+See `references/code-patterns.md` "Three-Tier Approach" for the full decision framework, cleanup semantics per tier, and the Tier 3 `ActionController::Parameters#values` backport example.
+
+**Tier 2 illustration, `ignored_columns` (Rails 4.2 → 5.0):**
 
 ❌ **WRONG — Do NOT use feature detection (`respond_to?`, `defined?`, etc.):**
 ```ruby
@@ -74,14 +96,17 @@ Put the next-version branch on top so cleanup is mechanical: after the upgrade, 
 
 ### When to Apply
 
-Use `NextRails.next?` branching for:
+Most dual-boots only use `next?` in the Gemfile. App-code branching (Tier 2 or Tier 3) is reserved for genuine two-sided breakage where migrating to a common API (Tier 1) isn't possible. Reach for a call-site conditional or a shim when:
+
 - **Removed methods or constants** where the replacement only exists on the new side (e.g., a gem-provided method replaced by a native Rails method with different syntax)
 - **Incompatible signature or return-type changes** where the old and new forms genuinely fail on opposite sides
 - **Gem version differences** where the gem's API is different across versions pinned to each Rails version
 - **Initializer changes** where a config or middleware raises on one side
 - **Ruby version differences** (e.g., syntax changes, stdlib removals)
 
-**Not a reason to branch:** plain deprecation warnings. If the new API works on both versions (e.g. `config.fixture_path=` → `config.fixture_paths=`, `update_attributes` → `update` before its removal), migrate the call site directly — do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "When NOT to Branch: Deprecations".
+Whether to resolve the gap with a call-site conditional (Tier 2) or a single shim (Tier 3) depends on how many call sites are affected and whether the gap spans a whole application layer. See `references/code-patterns.md` "Three-Tier Approach".
+
+**Not a reason to branch:** plain deprecation warnings. If the new API works on both versions (e.g. `config.fixture_path=` → `config.fixture_paths=`, `update_attributes` → `update` before its removal), migrate the call site directly. Do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "Tier 1: Unconditional Migration".
 
 ---
 
@@ -110,17 +135,24 @@ Claude should activate this skill when user says:
 See `workflows/setup-workflow.md` for the complete step-by-step process.
 
 **Summary:**
-0. Verify deprecation warnings are not silenced (see `references/deprecation-tracking.md`)
-1. Check if dual-boot is already set up (look for `Gemfile.next`)
-2. Add `next_rails` gem to Gemfile
-3. Run `bundle install`
-4. Run `next_rails --init` (only if `Gemfile.next` does NOT exist)
-5. Configure Gemfile with `next?` conditionals for the dependency being upgraded
-  6. Install dependencies for both versions:
-     - Current: `bundle install`
-     - Next: `cp Gemfile.lock Gemfile.next.lock && BUNDLE_GEMFILE=Gemfile.next bundle install`
 
-7. Verify both versions work
+*Phase 1, preparatory (before any Rails version hop):*
+1. Verify deprecation warnings are not silenced (see `references/deprecation-tracking.md`)
+2. Check if dual-boot is already set up (look for `Gemfile.next`)
+3. Add `next_rails` gem at the Gemfile root and run `bundle install`
+4. Run `next_rails --init` (only if `Gemfile.next` does NOT exist)
+5. Configure `DeprecationTracker` (ask upfront whether CI runs tests in parallel)
+6. Capture the deprecation inventory: `DEPRECATION_TRACKER=save bundle exec rspec`
+7. Fix current-side deprecations unconditionally (Tier 1, no `NextRails.next?`)
+
+*Phase 2, dual-boot (the version hop):*
+8. Configure the Gemfile with the `if next?` version conditional
+9. Identify and pin incompatible gems via `bundle_report compatibility --rails-version=<target>`
+10. Install dependencies for both versions:
+    - Current: `bundle install`
+    - Next: `cp Gemfile.lock Gemfile.next.lock && BUNDLE_GEMFILE=Gemfile.next bundle install`
+11. Verify both sides boot and run tests
+12. Fix two-sided breakage using Tier 2 or Tier 3 (`references/code-patterns.md`)
 
 ### Workflow 2: Add Version-Dependent Code
 
@@ -143,13 +175,13 @@ See `workflows/cleanup-workflow.md` for the complete post-upgrade cleanup proces
 
 **Summary:**
 1. Search for all `NextRails.next?` references
-2. Keep only the `NextRails.next?` (true) branch code
-3. Remove all `else` branches
-4. Remove `next?` method from Gemfile
+2. At each call site, keep only the `NextRails.next?` (true) branch and remove the `else` branch (Tier 2 cleanup)
+3. Delete backport/forwardport shim files whose outermost guard is `if NextRails.next?` or `if !NextRails.next?` (Tier 3 cleanup)
+4. Remove `next?` method and `if next?` blocks from Gemfile
 5. Remove `next_rails` gem if no longer needed
 6. Remove `Gemfile.next` and replace `Gemfile.lock` with `Gemfile.next.lock`
-7. Update CI to remove dual-boot configuration
-8. Run full test suite
+7. Run full test suite
+8. Update CI to remove dual-boot configuration
 9. Commit cleanup changes
 
 ---
