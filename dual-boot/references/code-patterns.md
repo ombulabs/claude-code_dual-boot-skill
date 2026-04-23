@@ -29,7 +29,7 @@ This is genuinely two-sided — the `7.1.0` pin fails resolution on the 7.0 side
 
 ---
 
-## Three-Tier Approach for Application Code
+## Three-Tier Approach
 
 When a version gap affects application code (not the Gemfile), pick the **lowest tier that works**. Lower tiers are cheaper to read, cheaper to clean up, and do not leave dead branches behind. Climb tiers only when the lower option actually breaks.
 
