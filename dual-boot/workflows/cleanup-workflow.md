@@ -53,7 +53,7 @@ Step 2 removes branches at individual call sites. Tier-3 shims are different: an
 grep -rln -E "^if\s*!?NextRails\.next\?\s*$" config/initializers/ test/ spec/
 ```
 
-The pattern matches files whose guard is on its own line at the start of a line. If your project keeps shims in other locations, broaden the search paths accordingly.
+This grep is a heuristic starting point, not definitive. It matches files whose guard is on its own line at the start. If your project keeps shims in other locations, broaden the search paths accordingly. **Every match requires manual verification — not every file with `if NextRails.next?` at the top level is a shim.**
 
 ### Verify each match is a shim, not a regular call-site branch:
 

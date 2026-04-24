@@ -46,9 +46,9 @@ When code would break on one version and needs a different implementation on the
 
 ### Pattern
 
-Every dual-boot has exactly one conditional that is always required: the Gemfile version pin. That is the canonical use of `next?`. App-code `NextRails.next?` is the exception, reserved for genuine two-sided breakage that cannot be resolved by migrating to a common API.
+Every dual-boot has exactly one conditional that is always required: the Gemfile version pin. That is the foundational use of `next?`. App-code `NextRails.next?` is the exception, reserved for genuine two-sided breakage that cannot be resolved by migrating to a common API.
 
-**The canonical conditional, the Gemfile version pin:**
+**The foundational conditional, the Gemfile version pin:**
 ```ruby
 # Gemfile
 if next?
@@ -106,7 +106,7 @@ Most dual-boots only use `next?` in the Gemfile. App-code branching (Tier 2 or T
 
 Whether to resolve the gap with a call-site conditional (Tier 2) or a single shim (Tier 3) depends on how many call sites are affected and whether the gap spans a whole application layer. See `references/code-patterns.md` "Three-Tier Approach".
 
-**Not a reason to branch:** plain deprecation warnings. If the new API works on both versions (e.g. `config.fixture_path=` → `config.fixture_paths=`, `update_attributes` → `update` before its removal), migrate the call site directly. Do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "Tier 1: Unconditional Migration".
+**Not a reason to branch:** plain deprecation warnings. If the new API works on both versions (e.g. `config.fixture_path=` → `config.fixture_paths=`, `update_attributes` → `update` before its removal), migrate the call site directly. Do not wrap it in `NextRails.next?`. This is typical for Rails at adjacent-minor boundaries because Rails ships the replacement API one version before removing the old form. Non-adjacent hops or third-party gems may have more genuine two-sided breaks. See `references/code-patterns.md` "Tier 1: Unconditional Migration".
 
 ---
 

@@ -10,7 +10,7 @@ The version numbers in the example below are from a Rails 4.2 → 5.0 upgrade, b
 
 ---
 
-## The Canonical Case: Gemfile Version Pin
+## The Foundational Case: Gemfile Version Pin
 
 ### `ActionController::TestRequest.new` → `.create` (Rails 4.2 → 5.0)
 
@@ -25,7 +25,7 @@ test_request =
   end
 ```
 
-This is genuinely two-sided — the `7.1.0` pin fails resolution on the 7.0 side and vice versa — so the conditional is required for bundler to resolve at all. Every other use of `NextRails.next?` is secondary.
+This is genuinely two-sided — the `7.1.0` pin fails resolution on the 7.0 side and vice versa — so the conditional is required for bundler to resolve at all. Every other use of `NextRails.next?` is secondary (Tier 2 or 3).
 
 ---
 
