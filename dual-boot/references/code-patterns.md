@@ -6,25 +6,23 @@ Use `NextRails.next?` anywhere your application code must behave differently bet
 
 **Only branch when the old code actually breaks on the next version.** A deprecation warning is not a reason for a conditional — if the new API works on both, replace the call site directly and let the deprecation disappear on its own. Reserve `NextRails.next?` for removed constants, removed methods, or incompatible signature/return-type changes that would raise an error otherwise.
 
-The version numbers in the example below are from a Rails 4.2 → 5.0 upgrade, but the pattern applies any time a gem-provided API is replaced by a native Rails API with different syntax (or vice versa) — the same shape works for any adjacent-version boundary where dropping the gem on one side makes the call unavailable.
+The version numbers in the example below are from a Rails 4.2 → 5.0 upgrade, but the pattern applies any time a method's signature or availability changes incompatibly across versions — the same shape works for any adjacent-version boundary where each side raises on the other's call.
 
 ---
 
 ## Rails API Changes Requiring a Conditional
 
-### `ignorable` gem → native `ignored_columns=` (Rails 4.2 → 5.0)
+### `ActionController::TestRequest.new` → `.create` (Rails 4.2 → 5.0)
 
-An app using the [`ignorable`](https://github.com/nthj/ignorable) gem to ignore columns on Rails 4.2 hits a genuine two-sided case when upgrading to 5.0, which introduced a native `ignored_columns=` with different syntax. If the gem is dropped on the 5.0 side (since Rails now has the feature), `ignore_columns :category` raises `NoMethodError` there; `self.ignored_columns += [:category]` raises `NoMethodError` on 4.2 where the setter doesn't exist yet.
+On Rails 4.2, [`ActionController::TestRequest.new`](https://github.com/rails/rails/blob/11f2bdf75a888682b34df0f9be03b94f54fc6796/actionpack/lib/action_controller/test_case.rb#L201) takes an optional `env` argument. On Rails 5.0, `new` [requires two non-optional arguments](https://github.com/rails/rails/blob/c4d3e202e10ae627b3b9c34498afb45450652421/actionpack/lib/action_controller/test_case.rb#L48), so the 4.2-style call raises `ArgumentError`. Rails 5.0 introduced `TestRequest.create` to hide that complexity — but `.create` does not exist on 4.2 (`NoMethodError`). Each side raises on the other's call.
 
 ```ruby
-# app/models/project.rb
-class Project < ActiveRecord::Base
+test_request =
   if NextRails.next?
-    self.ignored_columns += [:category]
+    ActionController::TestRequest.create
   else
-    ignore_columns :category
+    ActionController::TestRequest.new
   end
-end
 ```
 
 ---

@@ -26,8 +26,6 @@ next_rails --init
 
 ### 3. Configure Gemfile
 
-If your 4.2 app already depends on a gem that needs dropping on the 5.0 side (the `ignorable` gem in this example), move it from the Gemfile root into the `else` branch so it's installed only for Rails 4.2.
-
 ```ruby
 # Gemfile
 
@@ -41,7 +39,6 @@ if next?
   gem 'rails', '~> 5.0.0'
 else
   gem 'rails', '~> 4.2.0'
-  gem 'ignorable' # used for `ignore_columns` on 4.2; dropped on 5.0
 end
 
 gem 'next_rails'
@@ -72,17 +69,16 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 
 ### 6. Fix a Breaking Change
 
-Rails 5.0 introduced a native `ignored_columns=` setter, replacing the `ignorable` gem's `ignore_columns` class method. With the gem dropped on the 5.0 side, `ignore_columns` raises `NoMethodError` there; `ignored_columns=` raises `NoMethodError` on 4.2 where it doesn't yet exist. A conditional is required:
+On Rails 4.2, `ActionController::TestRequest.new` takes an optional `env`. On 5.0, `new` requires two non-optional arguments (so the 4.2 call raises `ArgumentError`), and 5.0 introduces `TestRequest.create` — which doesn't exist on 4.2 (`NoMethodError`). Each side raises on the other. A conditional is required:
 
 ```ruby
-# app/models/project.rb
-class Project < ActiveRecord::Base
+# spec/requests/projects_spec.rb
+test_request =
   if NextRails.next?
-    self.ignored_columns += [:category]
+    ActionController::TestRequest.create
   else
-    ignore_columns :category
+    ActionController::TestRequest.new
   end
-end
 ```
 
 ### 7. Verify Both Pass
@@ -95,7 +91,7 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec  # Next: green
 ### 8. Commit
 
 ```bash
-git add Gemfile Gemfile.next Gemfile.next.lock app/models/project.rb
+git add Gemfile Gemfile.next Gemfile.next.lock spec/requests/projects_spec.rb
 git commit -m "Set up dual-boot for Rails 4.2 → 5.0 upgrade"
 ```
 
@@ -106,19 +102,16 @@ git commit -m "Set up dual-boot for Rails 4.2 → 5.0 upgrade"
 Once you're fully on Rails 5.0, clean up:
 
 ```ruby
-# app/models/project.rb — BEFORE cleanup
-class Project < ActiveRecord::Base
+# spec/requests/projects_spec.rb — BEFORE cleanup
+test_request =
   if NextRails.next?
-    self.ignored_columns += [:category]
+    ActionController::TestRequest.create
   else
-    ignore_columns :category
+    ActionController::TestRequest.new
   end
-end
 
-# app/models/project.rb — AFTER cleanup
-class Project < ActiveRecord::Base
-  self.ignored_columns += [:category]
-end
+# spec/requests/projects_spec.rb — AFTER cleanup
+test_request = ActionController::TestRequest.create
 ```
 
 See `workflows/cleanup-workflow.md` for the full cleanup process.

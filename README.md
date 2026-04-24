@@ -71,14 +71,13 @@ In Claude Code, navigate to your Rails application directory and use natural lan
 When writing code that must work with two versions, always use `NextRails.next?`:
 
 ```ruby
-# app/models/project.rb
-class Project < ActiveRecord::Base
+# spec/requests/projects_spec.rb
+test_request =
   if NextRails.next?
-    self.ignored_columns += [:category]
+    ActionController::TestRequest.create
   else
-    ignore_columns :category
+    ActionController::TestRequest.new
   end
-end
 ```
 
 Never use `respond_to?`, `defined?`, or other feature-detection patterns. They are fragile, hard to clean up, and obscure intent.

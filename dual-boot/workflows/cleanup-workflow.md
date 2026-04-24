@@ -28,20 +28,17 @@ For each file found in Step 1, keep only the `NextRails.next?` (true) branch and
 
 ### Before:
 ```ruby
-class Project < ActiveRecord::Base
+test_request =
   if NextRails.next?
-    self.ignored_columns += [:category]
+    ActionController::TestRequest.create
   else
-    ignore_columns :category
+    ActionController::TestRequest.new
   end
-end
 ```
 
 ### After:
 ```ruby
-class Project < ActiveRecord::Base
-  self.ignored_columns += [:category]
-end
+test_request = ActionController::TestRequest.create
 ```
 
 ---

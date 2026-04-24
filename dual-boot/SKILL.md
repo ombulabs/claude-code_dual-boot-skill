@@ -31,7 +31,7 @@ This skill helps you:
 
 ## CRITICAL: Always Use `NextRails.next?` — Never Use Feature Detection
 
-When writing code that must work with both the current and target versions, **always use `NextRails.next?`** from the `next_rails` gem. Never use `respond_to?`, `defined?`, `const_defined?`, or any other feature-detection pattern for version branching.
+When code would break on one version and needs a different implementation on the other, **always use `NextRails.next?`** from the `next_rails` gem to branch — never feature detection. Do not use `respond_to?`, `defined?`, `const_defined?`, or any other feature-detection pattern for version branching.
 
 **Why feature detection is problematic:**
 - **Hard to understand:** readers must know which version introduced a method or constant to grasp the intent
@@ -50,26 +50,25 @@ Reach for `NextRails.next?` only when the old and new APIs are genuinely **two-s
 
 ❌ **WRONG — Do NOT use feature detection (`respond_to?`, `defined?`, etc.):**
 ```ruby
-if Project.respond_to?(:ignored_columns=)
-  self.ignored_columns += [:category]
-else
-  ignore_columns :category
-end
+test_request =
+  if ActionController::TestRequest.respond_to?(:create)
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 ```
 
 ✅ **CORRECT — Use `NextRails.next?`:**
 ```ruby
-# app/models/project.rb
-class Project < ActiveRecord::Base
+test_request =
   if NextRails.next?
-    self.ignored_columns += [:category]
+    ActionController::TestRequest.create
   else
-    ignore_columns :category
+    ActionController::TestRequest.new
   end
-end
 ```
 
-This is a genuine two-sided case (Rails 4.2 → 5.0): on 4.2 the app uses the [`ignorable`](https://github.com/nthj/ignorable) gem's `ignore_columns` class method. Rails 5.0 introduced native `ignored_columns=` with different syntax, and once the gem is dropped on the 5.0 side, `ignore_columns` raises `NoMethodError`. `ignored_columns=` raises `NoMethodError` on 4.2 where it doesn't yet exist.
+This is a genuine two-sided case (Rails 4.2 → 5.0). On 4.2, [`ActionController::TestRequest.new`](https://github.com/rails/rails/blob/11f2bdf75a888682b34df0f9be03b94f54fc6796/actionpack/lib/action_controller/test_case.rb#L201) takes an optional `env`; on 5.0 `new` [requires two non-optional arguments](https://github.com/rails/rails/blob/c4d3e202e10ae627b3b9c34498afb45450652421/actionpack/lib/action_controller/test_case.rb#L48) so the 4.2 call fails. Rails 5.0 introduces `TestRequest.create`, which does not exist on 4.2 — so each side raises on the other.
 
 Put the next-version branch on top so cleanup is mechanical: after the upgrade, keep the `if` body and drop the `else`. See `references/code-patterns.md` for more examples.
 
