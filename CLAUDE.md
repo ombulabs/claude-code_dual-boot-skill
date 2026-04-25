@@ -37,7 +37,7 @@ concern, and **this repo must not grow guidance that belongs to the siblings.**
 **In scope for this skill:**
 - Installing/configuring the `next_rails` gem
 - Gemfile conventions for two dependency sets (Rails, Ruby, or any core gem)
-- `NextRails.next?` branching patterns in application code
+- `NextRails.next?` / `NextRails.current?` branching patterns in application code
 - CI wiring for both dependency sets (GitHub Actions, CircleCI, Jenkins)
 - `Gemfile.next` / `Gemfile.next.lock` lifecycle
 - Cleanup after the upgrade lands
