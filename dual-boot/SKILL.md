@@ -29,15 +29,15 @@ This skill helps you:
 
 ---
 
-## CRITICAL: Always Use `NextRails.next?` — Never Use `respond_to?`
+## CRITICAL: Always Use `NextRails.next?` — Never Use Feature Detection
 
-When writing code that must work with both the current and target versions, **always use `NextRails.next?`** from the `next_rails` gem. Never use `respond_to?` or other feature-detection patterns for version branching.
+When code would break on one version and needs a different implementation on the other, **always use `NextRails.next?`** from the `next_rails` gem to branch — never feature detection. Do not use `respond_to?`, `defined?`, `const_defined?`, or any other feature-detection pattern for version branching.
 
-**Why `respond_to?` is problematic:**
-- **Hard to understand:** readers must know which version introduced a method to grasp the intent
-- **Hard to maintain:** `respond_to?` checks pile up and become impossible to clean up because their purpose is lost
-- **Fragile:** may give wrong results if gems monkey-patch methods in or out
-- **Obscures intent:** the code says "does this method exist?" when it means "are we on the next Rails version?"
+**Why feature detection is problematic:**
+- **Hard to understand:** readers must know which version introduced a method or constant to grasp the intent
+- **Hard to maintain:** `respond_to?` / `defined?` checks pile up and become impossible to clean up because their purpose is lost
+- **Fragile:** may give wrong results if gems monkey-patch methods or constants in or out
+- **Obscures intent:** the code says "does this exist?" when it means "are we on the next Rails version?"
 
 **Why `NextRails.next?` is better:**
 - **Explicit and readable:** anyone reading the code immediately understands "this branch is for the next version"
@@ -46,32 +46,42 @@ When writing code that must work with both the current and target versions, **al
 
 ### Pattern
 
-❌ **WRONG — Do NOT use `respond_to?`:**
+Reach for `NextRails.next?` only when the old and new APIs are genuinely **two-sided** — the old one raises on the next version and the new one doesn't exist on the current version. A plain deprecation warning is *not* a reason to branch: if the new API works on both sides, migrate the call site directly.
+
+❌ **WRONG — Do NOT use feature detection (`respond_to?`, `defined?`, etc.):**
 ```ruby
-if config.respond_to?(:fixture_paths=)
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
-end
+test_request =
+  if ActionController::TestRequest.respond_to?(:create)
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 ```
 
 ✅ **CORRECT — Use `NextRails.next?`:**
 ```ruby
-if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
-end
+test_request =
+  if NextRails.next?
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 ```
+
+This is a genuine two-sided case (Rails 4.2 → 5.0). On 4.2, [`ActionController::TestRequest.new`](https://github.com/rails/rails/blob/11f2bdf75a888682b34df0f9be03b94f54fc6796/actionpack/lib/action_controller/test_case.rb#L201) takes an optional `env`; on 5.0 `new` [requires two non-optional arguments](https://github.com/rails/rails/blob/c4d3e202e10ae627b3b9c34498afb45450652421/actionpack/lib/action_controller/test_case.rb#L48) so the 4.2 call fails. Rails 5.0 introduces `TestRequest.create`, which does not exist on 4.2 — so each side raises on the other.
+
+Put the next-version branch on top so cleanup is mechanical: after the upgrade, keep the `if` body and drop the `else`. See `references/code-patterns.md` for more examples.
 
 ### When to Apply
 
 Use `NextRails.next?` branching for:
-- **Configuration changes** (e.g., `fixture_path` → `fixture_paths`)
-- **API changes** (e.g., method renames, changed signatures, removed methods)
-- **Gem version differences** (e.g., different gem APIs across dependency versions)
-- **Initializer changes** (e.g., different middleware, different default settings)
+- **Removed methods or constants** where the replacement only exists on the new side (e.g., a gem-provided method replaced by a native Rails method with different syntax)
+- **Incompatible signature or return-type changes** where the old and new forms genuinely fail on opposite sides
+- **Gem version differences** where the gem's API is different across versions pinned to each Rails version
+- **Initializer changes** where a config or middleware raises on one side
 - **Ruby version differences** (e.g., syntax changes, stdlib removals)
+
+**Not a reason to branch:** plain deprecation warnings. If the new API works on both versions (e.g. `config.fixture_path=` → `config.fixture_paths=`, `update_attributes` → `update` before its removal), migrate the call site directly — do not wrap it in `NextRails.next?`. See `references/code-patterns.md` "When NOT to Branch: Deprecations".
 
 ---
 

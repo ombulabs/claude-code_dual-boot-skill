@@ -4,13 +4,38 @@
 
 Use `NextRails.next?` anywhere your application code must behave differently between the current and next dependency sets. This is the **only** acceptable way to branch on version — whether you are upgrading Rails, Ruby, or another core dependency.
 
+**Only branch when the old code actually breaks on the next version.** A deprecation warning is not a reason for a conditional — if the new API works on both, replace the call site directly and let the deprecation disappear on its own. Reserve `NextRails.next?` for removed constants, removed methods, or incompatible signature/return-type changes that would raise an error otherwise.
+
+The version numbers in the example below are from a Rails 4.2 → 5.0 upgrade, but the pattern applies any time a method's signature or availability changes incompatibly across versions — the same shape works for any adjacent-version boundary where each side raises on the other's call.
+
 ---
 
-## Rails Configuration Changes
+## Rails API Changes Requiring a Conditional
 
-### spec/rails_helper.rb — `fixture_path` → `fixture_paths`
+### `ActionController::TestRequest.new` → `.create` (Rails 4.2 → 5.0)
+
+On Rails 4.2, [`ActionController::TestRequest.new`](https://github.com/rails/rails/blob/11f2bdf75a888682b34df0f9be03b94f54fc6796/actionpack/lib/action_controller/test_case.rb#L201) takes an optional `env` argument. On Rails 5.0, `new` [requires two non-optional arguments](https://github.com/rails/rails/blob/c4d3e202e10ae627b3b9c34498afb45450652421/actionpack/lib/action_controller/test_case.rb#L48), so the 4.2-style call raises `ArgumentError`. Rails 5.0 introduced `TestRequest.create` to hide that complexity — but `.create` does not exist on 4.2 (`NoMethodError`). Each side raises on the other's call.
 
 ```ruby
+test_request =
+  if NextRails.next?
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
+```
+
+---
+
+## When NOT to Branch: Deprecations
+
+If the **new** API exists on the current version too, there is no breaking change — just replace the call site. Wrapping a deprecation in `NextRails.next?` adds dead branches you'll have to clean up for no benefit.
+
+❌ **WRONG — `fixture_path` → `fixture_paths` (deprecation only):**
+
+```ruby
+# Both config.fixture_path= and config.fixture_paths= work on Rails 7.0 and 7.1.
+# 7.1 only emits a deprecation warning for the old setter.
 if NextRails.next?
   config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
 else
@@ -18,30 +43,13 @@ else
 end
 ```
 
-### config/initializers/session_store.rb
+✅ **CORRECT — just use the new API everywhere:**
 
 ```ruby
-if NextRails.next?
-  Rails.application.config.session_store :cookie_store, key: '_myapp_session'
-else
-  Rails.application.config.session_store :cookie_store, key: '_myapp_session', secure: Rails.env.production?
-end
+config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
 ```
 
----
-
-## Rails Model Changes
-
-### Serialization API change
-
-```ruby
-# app/models/user.rb
-if NextRails.next?
-  serialize :preferences, coder: JSON
-else
-  serialize :preferences, JSON
-end
-```
+Same rule applies to `serialize :preferences, coder: JSON` vs. the older positional form, `update` vs. `update_attributes` (prior to the 6.1 removal), and most Rails API evolution: if both versions accept the new form, migrate call sites directly and skip the conditional.
 
 ---
 
@@ -63,21 +71,6 @@ end
 if NextRails.next?
   # Ruby 3.2+ uses a different default for Regexp timeout
   Regexp.timeout = 5
-end
-```
-
----
-
-## Core Dependency Changes
-
-### Sidekiq API change (6.x → 7.x)
-
-```ruby
-# config/initializers/sidekiq.rb
-if NextRails.next?
-  Sidekiq.default_job_options = { 'retry' => 3 }
-else
-  Sidekiq.default_worker_options = { 'retry' => 3 }
 end
 ```
 

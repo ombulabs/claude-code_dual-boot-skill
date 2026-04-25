@@ -64,21 +64,23 @@ When in doubt: this skill answers "how do I run two versions side by side?", not
 These are load-bearing across the skill's content. If edits would weaken or
 contradict any of them, stop and surface the conflict instead of shipping.
 
-1. **Branch with `next_rails`, never with `respond_to?`.** The gem exposes both
-   `NextRails.next?` and `NextRails.current?` — either is fine, but a given
-   codebase should pick **one** and apply it consistently so readers don't have
-   to mentally flip the polarity of each check. See `dual-boot/SKILL.md` for the
-   rationale on why `respond_to?` is the wrong tool.
+1. **Branch with `NextRails.next?`, never with `respond_to?`.** The gem also
+   exposes `NextRails.current?`, but this skill standardizes on `NextRails.next?`
+   so all examples, workflows, and user code read with the same polarity. See
+   `dual-boot/SKILL.md` for the rationale on why `respond_to?` is the wrong tool.
 2. **Never run `next_rails --init` if `Gemfile.next` already exists** — it duplicates
    the `next?` method.
 3. **Add `next_rails` at the Gemfile root**, not inside a `:development` or `:test` group.
-4. **Order branches so the "next version" case reads on top.** With
-   `NextRails.next?`, that means the `if` branch is next-version code and `else`
-   is current-version code; with `NextRails.current?`, invert the branches so the
-   next-version code still appears first.
+4. **Order branches so the "next version" case reads on top.** The `if NextRails.next?`
+   branch is next-version code; `else` is current-version code. This makes cleanup
+   mechanical: after the upgrade, keep the `if` branch and drop the `else`.
 5. **Cleanup preserves `Gemfile.next.lock` versions** — replace `Gemfile.lock` with
    `Gemfile.next.lock`, don't re-resolve.
 6. **Deprecation warnings must stay visible** during dual-boot.
+7. **Only branch for genuine breaking changes** — removed constants, removed methods,
+   incompatible signatures. If the new API works on both versions (i.e. the old one
+   merely emits a deprecation warning), migrate the call site directly instead of
+   wrapping it in `NextRails.next?`. See `dual-boot/SKILL.md` "Pattern" section.
 
 ---
 

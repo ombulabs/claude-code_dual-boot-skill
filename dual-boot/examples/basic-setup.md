@@ -4,7 +4,7 @@ This example walks through a Rails version upgrade. The same approach applies wh
 
 ## Scenario
 
-You have a Rails 7.0 application and want to upgrade to Rails 7.1. You want to set up dual-boot to test both versions during the transition.
+You have a Rails 4.2 application and want to upgrade to Rails 5.0. You want to set up dual-boot to test both versions during the transition.
 
 ---
 
@@ -36,9 +36,9 @@ def next?
 end
 
 if next?
-  gem 'rails', '~> 7.1.0'
+  gem 'rails', '~> 5.0.0'
 else
-  gem 'rails', '~> 7.0.0'
+  gem 'rails', '~> 4.2.0'
 end
 
 gem 'next_rails'
@@ -58,26 +58,27 @@ BUNDLE_GEMFILE=Gemfile.next bundle install
 ### 5. Run Tests Against Both
 
 ```bash
-# Current version (7.0)
+# Current version (4.2)
 bundle exec rspec
 # => All green
 
-# Next version (7.1)
+# Next version (5.0)
 BUNDLE_GEMFILE=Gemfile.next bundle exec rspec
 # => Some failures — fix using NextRails.next? branching
 ```
 
 ### 6. Fix a Breaking Change
 
-Rails 7.1 changed `fixture_path` to `fixture_paths`. Fix it:
+On Rails 4.2, `ActionController::TestRequest.new` takes an optional `env`. On 5.0, `new` requires two non-optional arguments (so the 4.2 call raises `ArgumentError`), and 5.0 introduces `TestRequest.create` — which doesn't exist on 4.2 (`NoMethodError`). Each side raises on the other. A conditional is required:
 
 ```ruby
-# spec/rails_helper.rb
-if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
-end
+# spec/requests/projects_spec.rb
+test_request =
+  if NextRails.next?
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 ```
 
 ### 7. Verify Both Pass
@@ -90,26 +91,27 @@ BUNDLE_GEMFILE=Gemfile.next bundle exec rspec  # Next: green
 ### 8. Commit
 
 ```bash
-git add Gemfile Gemfile.next Gemfile.next.lock spec/rails_helper.rb
-git commit -m "Set up dual-boot for Rails 7.0 → 7.1 upgrade"
+git add Gemfile Gemfile.next Gemfile.next.lock spec/requests/projects_spec.rb
+git commit -m "Set up dual-boot for Rails 4.2 → 5.0 upgrade"
 ```
 
 ---
 
 ## After Upgrade Is Complete
 
-Once you're fully on Rails 7.1, clean up:
+Once you're fully on Rails 5.0, clean up:
 
 ```ruby
-# spec/rails_helper.rb — BEFORE cleanup
-if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
-end
+# spec/requests/projects_spec.rb — BEFORE cleanup
+test_request =
+  if NextRails.next?
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 
-# spec/rails_helper.rb — AFTER cleanup
-config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+# spec/requests/projects_spec.rb — AFTER cleanup
+test_request = ActionController::TestRequest.create
 ```
 
 See `workflows/cleanup-workflow.md` for the full cleanup process.

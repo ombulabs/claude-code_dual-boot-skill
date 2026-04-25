@@ -66,20 +66,23 @@ In Claude Code, navigate to your Rails application directory and use natural lan
 "Clean up dual-boot code after upgrade"
 ```
 
-## Key Principle: Use `NextRails.next?` (not `respond_to?`!)
+## Key Principle: Use `NextRails.next?` (not feature detection)
 
 When writing code that must work with two versions, always use `NextRails.next?`:
 
 ```ruby
-# CORRECT
-if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
-end
+# spec/requests/projects_spec.rb
+test_request =
+  if NextRails.next?
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 ```
 
-Never use `respond_to?` for version branching. It's hard to understand, hard to maintain, and obscures intent.
+Never use `respond_to?`, `defined?`, or other feature-detection patterns. They are fragile, hard to clean up, and obscure intent.
+
+Only branch when the old API genuinely breaks on the next version. A plain deprecation warning is not a reason for a conditional — if the new API works on both versions, just use it directly.
 
 ## Related Skills
 

@@ -28,16 +28,17 @@ For each file found in Step 1, keep only the `NextRails.next?` (true) branch and
 
 ### Before:
 ```ruby
-if NextRails.next?
-  config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
-else
-  config.fixture_path = "#{::Rails.root}/spec/fixtures"
-end
+test_request =
+  if NextRails.next?
+    ActionController::TestRequest.create
+  else
+    ActionController::TestRequest.new
+  end
 ```
 
 ### After:
 ```ruby
-config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
+test_request = ActionController::TestRequest.create
 ```
 
 ---
