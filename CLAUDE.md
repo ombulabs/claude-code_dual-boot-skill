@@ -81,6 +81,13 @@ contradict any of them, stop and surface the conflict instead of shipping.
    incompatible signatures. If the new API works on both versions (i.e. the old one
    merely emits a deprecation warning), migrate the call site directly instead of
    wrapping it in `NextRails.next?`. See `dual-boot/SKILL.md` "Pattern" section.
+8. **Prefer a single backport/forwardport shim over scattered conditionals when the
+   version gap spans an application layer** (all controllers, all mailers, all models
+   with the same concern) **or affects roughly 20+ call sites**. A shim in one file
+   (`config/initializers/*.rb`, `test_helper.rb`, `spec_helper.rb`) keeps call sites
+   identical across both versions and collapses to a single-file delete at cleanup.
+   `NextRails.next?` call-site conditionals are fine for smaller gaps. See
+   `dual-boot/references/code-patterns.md` "Three-Tier Approach".
 
 ---
 
