@@ -40,6 +40,24 @@ ActiveSupport::Deprecation.silenced = true
 ActiveSupport::Deprecation.silence { ... }
 ```
 
+### Check `.rspec` and other autoloaded test config
+
+Deprecation behavior can also be installed by RSpec autoloads, not just `config/`. A single line in `.rspec` like
+
+```
+# .rspec
+-r raise_errors_for_deprecations
+```
+
+installs an RSpec hook that raises on every `ActiveSupport::Deprecation.warn`. That is sometimes intentional (strict mode for clean projects), but it changes how every test failure should be interpreted — and it's easy to miss because nothing about it lives under `config/`. The same applies to hooks installed via `RSpec.configure { |c| c.raise_errors_for_deprecations! }` in `spec_helper.rb`, `rails_helper.rb`, or `spec/support/`.
+
+Sweep these locations:
+
+- `.rspec`, `spec/.rspec`
+- `spec/spec_helper.rb`, `spec/rails_helper.rb`, `spec/support/**/*.rb`
+- `Rakefile`, `lib/tasks/*.rake`
+- Any Bundler-loaded test-group gem that wires deprecation behavior
+
 ### Detection Commands
 
 Search from the project root to catch configuration in any directory structure (standard Rails, Packwerk packs, engines, etc.):
@@ -49,10 +67,23 @@ Search from the project root to catch configuration in any directory structure (
 grep -rn "active_support.deprecation" .
 grep -rn "report_deprecations" .
 grep -rn "Deprecation.silenced" .
-grep -rn "Deprecation.silence" .
+grep -rnE "ActiveSupport::Deprecation\.silence\b" .
+grep -rn "raise_errors_for_deprecations" .
 ```
 
-If any of these are silencing deprecations, fix them before proceeding with the upgrade.
+The last one catches both the `.rspec` autoload (`-r raise_errors_for_deprecations`) and the in-helper hook (`config.raise_errors_for_deprecations!`).
+
+For a single sweep:
+
+```bash
+grep -rnE "raise_errors_for_deprecations|ActiveSupport::Deprecation\.(behavior|disallowed_behavior|silenced)\s*=|ActiveSupport::Deprecation\.silence\b|deprecation.*silence|report_deprecations.*false" \
+  .rspec spec/.rspec spec/spec_helper.rb spec/rails_helper.rb Rakefile \
+  config/ spec/support/ lib/tasks/ 2>/dev/null
+```
+
+The `silence\b` alternation catches the block form `ActiveSupport::Deprecation.silence do ... end`. The `\b` word boundary keeps it from matching `silenced` (already covered by the assignment branch).
+
+If any of these are silencing deprecations, fix them before proceeding with the upgrade. If `raise_errors_for_deprecations` is in place, decide whether to keep it (strict mode) or temporarily relax it during triage so test failures don't conflate "deprecation warning fired" with "real assertion failure".
 
 ---
 
@@ -274,6 +305,8 @@ After completing the upgrade:
 | What to check | Command |
 |---|---|
 | Silenced deprecations | `grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" .` |
+| Block-form silencing | `grep -rnE "ActiveSupport::Deprecation\.silence\b" .` |
+| Autoloaded raise hooks | `grep -rn "raise_errors_for_deprecations" .` |
 | Current behavior | `grep -rn "active_support.deprecation" .` |
 | Custom behaviors | `grep -rn "Deprecation.behavior" .` |
 | Save deprecation inventory | `DEPRECATION_TRACKER=save bundle exec rspec` |

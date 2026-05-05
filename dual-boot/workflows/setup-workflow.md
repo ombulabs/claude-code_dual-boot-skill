@@ -13,15 +13,28 @@ Before setting up dual-boot, ensure deprecation warnings are visible. Silenced d
 
 **Check for silenced deprecations:**
 
+`config/` is not the only place this gets configured. RSpec autoloads `-r` requires from `.rspec`, and test helpers can install hooks like `RSpec.configure { |c| c.raise_errors_for_deprecations! }`. Sweep these locations as well:
+
+- `.rspec`, `spec/.rspec` (look for `-r raise_errors_for_deprecations` and similar autoloads)
+- `spec/spec_helper.rb`, `spec/rails_helper.rb`, `spec/support/**/*.rb`
+- `Rakefile`, `lib/tasks/*.rake`
+- Any Bundler-loaded test-group gem that wires deprecation behavior
+
 ```bash
-grep -rn "deprecation.*silence\|silenced.*true\|report_deprecations.*false" config/
+grep -rnE "raise_errors_for_deprecations|ActiveSupport::Deprecation\.(behavior|disallowed_behavior|silenced)\s*=|ActiveSupport::Deprecation\.silence\b|deprecation.*silence|silenced.*true|report_deprecations.*false" \
+  .rspec spec/.rspec spec/spec_helper.rb spec/rails_helper.rb Rakefile \
+  config/ spec/support/ lib/tasks/ 2>/dev/null
 ```
+
+The `silence\b` alternation catches the block form `ActiveSupport::Deprecation.silence do ... end`. The `\b` word boundary keeps it from matching `silenced` (already covered by the assignment branch).
 
 **If deprecations are silenced:**
 1. Change `:silence` to `:stderr` or `:log` (or `:raise` if you want strict mode)
 2. Remove `ActiveSupport::Deprecation.silenced = true` if found
 3. Remove `config.active_support.report_deprecations = false` if found (Rails 7.0+)
-4. Run the test suite to see current deprecation warnings
+4. Review any `Deprecation.silence do ... end` blocks. Each one hides a deprecation that should be triaged rather than suppressed.
+5. Review any `raise_errors_for_deprecations` autoload. Useful in strict mode, but worth knowing it's installed before interpreting test failures.
+6. Run the test suite to see current deprecation warnings
 
 See `references/deprecation-tracking.md` for detailed configuration guidance, including a gradual approach using custom deprecation behaviors for apps with many existing warnings.
 
